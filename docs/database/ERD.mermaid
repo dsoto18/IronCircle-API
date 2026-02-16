@@ -1,0 +1,98 @@
+erDiagram
+	direction TB
+	USERS {
+		ObjectId _id  ""  
+		string firstName  ""  
+		string lastName  ""  
+		string username  ""  
+		string email  ""  
+		string passwordHash  ""  
+		boolean verified  ""  
+		string accountType  ""  
+		datetime createdAt  ""  
+		datetime lastLoginAt  ""  
+	}
+
+	ORGANIZATIONS {
+		ObjectId _id  ""  
+		string name  ""  
+		string handle  ""  
+		string description  ""  
+		string logoUrl  ""  
+		boolean verified  ""  
+		datetime createdAt  ""  
+	}
+
+	ORGANIZATION_MEMBERS {
+		ObjectId _id  ""  
+		ObjectId organizationId  ""  
+		ObjectId userId  ""  
+		string role  ""  
+		datetime createdAt  ""  
+	}
+
+	POSTS {
+		ObjectId _id  ""  
+		ObjectId authorId  ""  
+		string authorType  ""  
+		string type  ""  
+		string title  ""  
+		string description  ""  
+		string visibility  ""  
+		datetime createdAt  ""  
+		datetime updatedAt  ""  
+	}
+
+	COMMENTS {
+		ObjectId _id  ""  
+		ObjectId postId  ""  
+		ObjectId authorId  ""  
+		string content  ""  
+		datetime createdAt  ""  
+	}
+
+	LIKES {
+		ObjectId _id  ""  
+		ObjectId postId  ""  
+		ObjectId userId  ""  
+		datetime createdAt  ""  
+	}
+
+	CHALLENGES {
+		ObjectId _id  ""  
+		ObjectId creatorId  ""  
+		string creatorType  ""  
+		string title  ""  
+		string metric  ""  
+		datetime startDate  ""  
+		datetime endDate  ""  
+		string visibility  ""  
+		datetime createdAt  ""  
+	}
+
+	CHALLENGE_PARTICIPANTS {
+		ObjectId _id  ""  
+		ObjectId challengeId  ""  
+		ObjectId userId  ""  
+		number progressValue  ""  
+	}
+
+	FOLLOWS {
+		ObjectId _id  ""  
+		ObjectId followerId  ""  
+		ObjectId followingId  ""  
+		datetime createdAt  ""  
+	}
+
+	USERS||--o{POSTS:"creates"
+	ORGANIZATIONS||--o{POSTS:"publishes"
+	USERS||--o{COMMENTS:"writes"
+	POSTS||--o{COMMENTS:"has"
+	USERS||--o{LIKES:"gives"
+	POSTS||--o{LIKES:"receives"
+	USERS||--o{FOLLOWS:"follows"
+	USERS||--o{FOLLOWS:"is_followed_by"
+	ORGANIZATIONS||--o{ORGANIZATION_MEMBERS:"has"
+	USERS||--o{ORGANIZATION_MEMBERS:"joins"
+	CHALLENGES||--o{CHALLENGE_PARTICIPANTS:"tracks"
+	CHALLENGE_PARTICIPANTS||--||USERS:"are"
