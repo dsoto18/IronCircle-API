@@ -5,9 +5,9 @@ export class PostsRoutehandler {
         const router = Router();
 
         router.get("/posts", this.getPosts);
-        router.get("/users/:postId", this.getPost);
-        router.patch("/users/:postId", this.updatePost);
-        router.delete("/posts/:postId", this.deletePost);
+        router.get("/post/:postId", this.getPost);
+        router.patch("/post/:postId", this.updatePost);
+        router.delete("/post/:postId", this.deletePost);
 
         return router;
     }
