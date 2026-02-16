@@ -4,6 +4,7 @@ export class UserRouteHandler {
     public static build(): Router {
         const router = Router();
 
+        router.post("/users", this.register);
         router.get("/users", this.getUsers);
         router.get("/users/:user", this.getUser);
         router.patch("/users/:username", this.updateUser);
@@ -11,6 +12,9 @@ export class UserRouteHandler {
         return router;
     }
 
+    public static register(req: Request, res: Response){
+        return res.json({ message: "Register User"});
+    }
     /**
      * Search Users Route
      */
