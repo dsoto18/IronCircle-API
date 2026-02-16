@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 
 export class UserRouteHandler {
     public static build(): Router {
@@ -14,22 +14,22 @@ export class UserRouteHandler {
     /**
      * Search Users Route
      */
-    public static getUsers() {
-
+    public static getUsers(req: Request, res: Response) {
+        return res.json({ message: "Get Users"});
     }
 
     /**
      * Returns details of a single user
      */
-    public static getUser() {
-
+    public static getUser(req: Request, res: Response) {
+        return res.json({ message: "Get User"});
     }
 
     /**
      * Update a User
      */
-    public static updateUser() {
-
+    public static updateUser(req: Request, res: Response) {
+        return res.json({ message: "Update Users"});
     }
 
 }
