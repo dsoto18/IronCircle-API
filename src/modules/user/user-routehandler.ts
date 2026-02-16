@@ -8,6 +8,7 @@ export class UserRouteHandler {
         router.get("/users", this.getUsers);
         router.get("/users/:user", this.getUser);
         router.patch("/users/:username", this.updateUser);
+        router.post("/users/:userId/followers/:followerId", this.addFollower);
 
         return router;
     }
@@ -36,4 +37,7 @@ export class UserRouteHandler {
         return res.json({ message: "Update Users"});
     }
 
+    public static addFollower(req: Request, res: Response){
+        return res.json({ message: "Add Follower"});
+    }
 }

@@ -9,6 +9,9 @@ export class OrganizationRoutehandler {
         router.post("/organization", this.createOrganization);
         router.patch("/organization/:orgId", this.updateOrg);
         router.delete("/organization/:orgId", this.deleteOrg);
+        router.patch("/organizations/:orgId/users/:userId", this.addUserToOrg);
+        router.delete("/organizations/:orgId/users/:userId", this.removeUserFromOrg);
+        router.patch("/organizations/:orgId/admin/:userId/", this.editAdminPrivileges)
 
         return router;
     }
@@ -31,5 +34,17 @@ export class OrganizationRoutehandler {
 
     public static deleteOrg(req: Request, res: Response) {
         return res.json({ message: "Delete Organization"});
+    }
+
+    public static addUserToOrg(req: Request, res: Response) {
+        return res.json({ message: "Add User To Organization"});
+    }
+
+    public static removeUserFromOrg(req: Request, res: Response) {
+        return res.json({ message: "Remove User From Organization"});
+    }
+
+    public static editAdminPrivileges(req: Request, res: Response) {
+        return res.json({ message: "Edited Admins For Organization"});
     }
 }
