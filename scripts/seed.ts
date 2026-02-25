@@ -1,39 +1,58 @@
-import { MongoClient } from "mongodb";
+import { DynamoDBClient, CreateTableCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
-// Docker container URI
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017";
-const DB_NAME = "ironcircle";
+const client = new DynamoDBClient({
+  region: "us-east-1",
+  endpoint: "http://localhost:8000",
+  credentials: {
+    accessKeyId: "local",
+    secretAccessKey: "local",
+  },
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
 
 async function seed() {
-  const client = new MongoClient(MONGO_URI);
-
+  // Create Users table
   try {
-    await client.connect();
-    console.log("Connected to MongoDB");
-
-    const db = client.db(DB_NAME);
-    const usersCollection = db.collection("users");
-
-
-    await usersCollection.deleteMany({});
-
-    // Seed me
-    const user = {
-      name: "Diego",
-      username: "diego123",
-      type: "admin",
-      password: "password123",
-      created: new Date().toISOString(),
-    };
-
-    const result = await usersCollection.insertOne(user);
-    console.log(`Inserted user with _id: ${result.insertedId}`);
-  } catch (err) {
-    console.error("Error seeding MongoDB:", err);
-  } finally {
-    await client.close();
-    console.log("Disconnected from MongoDB");
+    await client.send(
+      new CreateTableCommand({
+        TableName: "Users",
+        KeySchema: [
+          { AttributeName: "PK", KeyType: "HASH" },
+          { AttributeName: "SK", KeyType: "RANGE" },
+        ],
+        AttributeDefinitions: [
+          { AttributeName: "PK", AttributeType: "S" },
+          { AttributeName: "SK", AttributeType: "S" },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+    console.log("Users table created");
+  } catch (err: any) {
+    if (err.name !== "ResourceInUseException") {
+      throw err;
+    }
   }
+
+  // Insert user
+  await docClient.send(
+    new PutCommand({
+      TableName: "Users",
+      Item: {
+        PK: "USER#diego",
+        SK: "PROFILE",
+        name: "Diego",
+        username: "diego123",
+        type: "user",
+        password: "password123",
+        createdAt: new Date().toISOString(),
+      },
+    })
+  );
+
+  console.log("Seed data inserted");
 }
 
-seed();
+seed().catch(console.error);

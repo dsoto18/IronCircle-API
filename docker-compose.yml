@@ -6,30 +6,32 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - mongo
+      - dynamodb
     environment:
-      MONGO_URI: mongodb://mongo:27017/ironcircle
+      DYNAMODB_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECET_ACCESS_KEY: local
 
-  mongo:
-    image: mongo:7
-    container_name: ironcircle-mongo
+  dynamodb:
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb-local
     ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
 
-  mongo-express:
-    image: mongo-express:1.0.0
-    container_name: ironcircle-mongo-express
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin
+    container_name: dynamodb-admin
     ports:
-      - "8080:8080"
+      - "8081:8001"
     environment:
-      ME_CONFIG_MONGODB_SERVER: mongo
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ""
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ""
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
     depends_on:
-      - mongo
+      - dynamodb
 
 volumes:
   mongo_data:

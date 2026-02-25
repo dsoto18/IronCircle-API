@@ -22,8 +22,9 @@
   },
   "homepage": "https://github.com/dsoto18/IronCircle-API#readme",
   "dependencies": {
-    "express": "^5.2.1",
-    "mongodb": "^7.1.0"
+    "@aws-sdk/client-dynamodb": "^3.998.0",
+    "@aws-sdk/lib-dynamodb": "^3.998.0",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
