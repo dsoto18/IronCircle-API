@@ -1,4 +1,5 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
+import { UserComponent } from "./user-component";
 
 export class UserRouteHandler {
     public static build(): Router {
@@ -13,8 +14,13 @@ export class UserRouteHandler {
         return router;
     }
 
-    public static register(req: Request, res: Response){
-        return res.json({ message: "Register User"});
+    public static register(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(UserComponent.build().createUser())
+        }
+        catch (e) {
+            next(e);
+        }
     }
     /**
      * Search Users Route
