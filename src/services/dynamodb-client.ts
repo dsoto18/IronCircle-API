@@ -2,7 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
 export class DynamoClient {
 
-    static instance: DynamoClient;
+    private static instance: DynamoClient;
     private client: DynamoDBClient;
 
     private constructor(){
@@ -17,5 +17,9 @@ export class DynamoClient {
             DynamoClient.instance = new DynamoClient();
         }
         return DynamoClient.instance;
+    }
+
+    public get clientInstance(): DynamoDBClient {
+        return this.client;
     }
 }

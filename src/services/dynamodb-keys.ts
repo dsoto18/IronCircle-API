@@ -10,11 +10,21 @@ export function generateUuid() {
 
 export const PK = {
   user: (id: string) => `USER#${id}`,
+  username: (username: string) => `USERNAME#${username}`,
+  email: (email: string) => `EMAIL#${email}`,
   post: (id: string) => `POST#${id}`,
   plan: (id: string) => `PLAN#${id}`,
 };
 
 export const SK = {
   profile: "PROFILE",
+  user: "USER",
   completedBy: (userId: string) => `COMPLETED#USER#${userId}`,
 };
+
+export const ENTITY = {
+  user: "User",
+  plan: "Plan",
+  username: "UsernameLock",
+  email: "EmailLock"
+}

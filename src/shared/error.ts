@@ -20,11 +20,11 @@ export class ResourceError extends Error {
     constructor(
         message: string,
         type: ResourceErrorReason,
-        additionalInformation: Record<string, any>,
+        additionalInformation?: Record<string, any>,
     ) {
         super(message);
         this.name = type;
-        this.additionalInformation = additionalInformation;
+        this.additionalInformation = additionalInformation!;
     }
 }
 

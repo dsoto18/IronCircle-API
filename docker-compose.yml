@@ -1,17 +1,21 @@
 services:
   api:
-    build: .
-    image: ironcircle-api
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     container_name: ironcircle-api
     ports:
       - "3000:3000"
-    depends_on:
-      - dynamodb
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       DYNAMODB_ENDPOINT: http://dynamodb:8000
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
-      AWS_SECET_ACCESS_KEY: local
+      AWS_SECRET_ACCESS_KEY: local
+    depends_on:
+      - dynamodb
 
   dynamodb:
     image: "amazon/dynamodb-local:latest"

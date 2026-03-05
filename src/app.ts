@@ -5,6 +5,9 @@ import { PostsRoutehandler } from './modules/post/posts-routehandler';
 const app = express();
 const port = 3000;
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.use(UserRouteHandler.build());
 app.use(PostsRoutehandler.build());
 
