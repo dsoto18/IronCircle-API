@@ -1,11 +1,11 @@
-import { v4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Centralized Key Functions to create PK and SK Values
  */
 
 export function generateUuid() {
-    return v4();
+    return uuidv4();
 }
 
 export const PK = {

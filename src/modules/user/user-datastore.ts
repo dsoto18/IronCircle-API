@@ -41,7 +41,6 @@ export class UserDatastore {
                 lastName: { S: insert.lastName },
                 username: { S: insert.username },
                 email: { S: insert.email },
-                type: { S: "user" },
                 password: { S: "password123" },
                 createdAt: { S: new Date().toISOString() },
                 updatedAt: { S: new Date().toISOString() },

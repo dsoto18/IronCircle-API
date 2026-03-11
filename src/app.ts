@@ -12,7 +12,7 @@ app.use(UserRouteHandler.build());
 app.use(PostsRoutehandler.build());
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello World from the Iron Circle API!');
+  res.send('Hello World from the Bluepnt API!');
 });
 
 app.listen(port, () => {

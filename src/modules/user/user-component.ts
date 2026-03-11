@@ -1,3 +1,4 @@
+import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { GetUserDTO } from "./DTOs/get-user.dto";
 import { UserDatastore } from "./user-datastore";
@@ -14,6 +15,21 @@ export class UserComponent {
     }
 
     public async createUser(dto: CreateUserDTO) {
+        // normalize username
+        dto.username = dto.username.toLowerCase();
+
+        // check if username or email already exist
+        const usernameExists = await this.userDatastore.getUser(dto.username);
+        if(usernameExists){
+            throw new ResourceError("Username already in use.", ResourceErrorReason.CONFLICT);
+        }
+        const emailExists = await this.userDatastore.getUser(dto.email);
+        if(emailExists){
+            throw new ResourceError("Email already in use.", ResourceErrorReason.CONFLICT)
+        }
+        
+        // hash password
+        
         return await this.userDatastore.createUser(dto);
     }
 
