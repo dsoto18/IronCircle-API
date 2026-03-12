@@ -23,6 +23,7 @@ export function Dto(dto: new (req: Request) => AbstractDto): MethodDecorator {
                 // call the original function
                 return original.apply(this, args);
             } catch (error) {
+                console.log(error)
                 return next(error);
             }
         };

@@ -7,7 +7,7 @@ export class PostsRoutehandler {
     public static build(): Router {
         const router = Router();
 
-        router.post("/:userid/posts", this.createPost);
+        router.post("/:userId/posts", this.createPost);
         router.get("/posts", this.getPosts);
         router.get("/post/:postId", this.getPost);
         router.patch("/post/:postId", this.updatePost);

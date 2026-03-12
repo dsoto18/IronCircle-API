@@ -1,3 +1,4 @@
+import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { UserDatastore } from "../user/user-datastore";
 import { CreatePostDTO } from "./DTOs/create-post.dto";
 import { PostsDatastore } from "./posts-datastore";
@@ -15,6 +16,14 @@ export class PostsComponent {
     }
 
     public async createPost(postBody: CreatePostDTO){
+        // double check user exists
+        const user = await this.userDatastore.getUserById(postBody.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
 
+        console.log(postBody.type);
+        // return await this.postDatastore.createPost(postBody);
+        return;
     }
 }
