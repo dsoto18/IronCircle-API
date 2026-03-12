@@ -36,6 +36,7 @@ export class UserComponent {
 
     public async getUser(dto: GetUserDTO){
         const identifier = dto.userIdentifier;
+        // figure out if identifier is email or username, and perform correct query
         const isEmail = identifier.includes('@');
         const lock = isEmail ? await this.userDatastore.getUserEmailLock(identifier) : await this.userDatastore.getUsernameLock(identifier);
 
@@ -77,8 +78,8 @@ export class UserComponent {
         }
 
         // check if this follow relationship already exists
-        const check = false;
-        if(check){
+        const check = await this.userDatastore.followExists(followBody.userId, followBody.following);
+        if(check?.Item){
             throw new ResourceError("Follow relationship already exists.", ResourceErrorReason.CONFLICT);
         }
 

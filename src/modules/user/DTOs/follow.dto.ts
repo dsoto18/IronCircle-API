@@ -14,6 +14,6 @@ export class FollowDTO extends AbstractDto {
         super();
 
         this.userId = req.params.userId as string;
-        this.following = req.params.following as string;
+        this.following = req.params.followerId as string;
     }
 }

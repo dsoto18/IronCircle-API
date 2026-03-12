@@ -101,45 +101,6 @@ export class UserDatastore {
 
     }
 
-    public async createFollow(follower: string, followee: string){
-        const followsPK = PK.user(follower);
-        const followsSK = SK.follows(followee);
-
-        const followedByPK = PK.user(followee);
-        const followedBySK = SK.followedBy(follower);
-
-        const entry1 = {
-            TableName: TABLE_NAME,
-            Item: {
-                PK: { S: followsPK },
-                SK: { S: followsSK },
-                entity: { S: ENTITY.user },
-                targetUserId: { S: followee },
-                createdAt: { S: new Date().toISOString() },
-            },
-            ConditionExpression: "attribute_not_exists(PK)"
-        };
-        const entry2 = {
-            TableName: TABLE_NAME,
-            Item: {
-                PK: { S: followedByPK },
-                SK: { S: followedBySK },
-                entity: { S: ENTITY.follow },
-                sourceUserId: { S: follower },
-                createdAt: { S: new Date().toISOString() },
-            },
-            ConditionExpression: "attribute_not_exists(PK)"
-        };
-        
-        const transaction = [ { Put: entry1 }, { Put: entry2 } ];
-        try {
-            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
-            return result;
-        } catch (e) {
-            throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
-        }
-    }
-
     public async getUserEmailLock(email: string){
         // GetItem query for the email lock item
         const lock = await this.dbClient?.send(new GetCommand({
@@ -164,5 +125,61 @@ export class UserDatastore {
         }));
 
         return lock;
+    }
+
+    // TODO: The following two datastore functions for "follows", could be moved to their own datastore file
+    public async createFollow(follower: string, followee: string){
+        const followsPK = PK.user(follower);
+        const followsSK = SK.follows(followee);
+
+        const followedByPK = PK.user(followee);
+        const followedBySK = SK.followedBy(follower);
+
+        const createdAt = new Date().toISOString();
+
+        const entry1 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: { S: followsPK },
+                SK: { S: followsSK },
+                entity: { S: ENTITY.follow },
+                targetUserId: { S: followee },
+                createdAt: { S: createdAt },
+            },
+            ConditionExpression: "attribute_not_exists(SK)"
+        };
+        const entry2 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: { S: followedByPK },
+                SK: { S: followedBySK },
+                entity: { S: ENTITY.follow },
+                sourceUserId: { S: follower },
+                createdAt: { S: createdAt },
+            },
+            ConditionExpression: "attribute_not_exists(SK)"
+        };
+        
+        const transaction = [ { Put: entry1 }, { Put: entry2 } ];
+        try {
+            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
+            return result;
+        } catch (e) {
+            throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // TODO: Possibly move into own "followers" datastore file along with above function
+    public async followExists(follower: string, followee: string) {
+        const result = await this.dbClient?.send(
+            new GetCommand({
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(follower),
+                    SK: SK.follows(followee)
+                }
+            })
+        );
+        return result;
     }
 }
