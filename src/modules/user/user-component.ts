@@ -57,7 +57,7 @@ export class UserComponent {
         return user;
     }
 
-    public async getUsers() {
+    public async getUsers() { // Might not need
         return await this.userDatastore.getUsers();
     }
 

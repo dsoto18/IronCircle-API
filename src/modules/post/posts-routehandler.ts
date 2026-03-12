@@ -1,9 +1,13 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
+import { Dto } from "../../shared/dto";
+import { CreatePostDTO } from "./DTOs/create-post.dto";
+import { PostsComponent } from "./posts-component";
 
 export class PostsRoutehandler {
     public static build(): Router {
         const router = Router();
 
+        router.post("/:userid/posts", this.createPost);
         router.get("/posts", this.getPosts);
         router.get("/post/:postId", this.getPost);
         router.patch("/post/:postId", this.updatePost);
@@ -17,6 +21,18 @@ export class PostsRoutehandler {
         router.delete("/post/:postId/likes", this.removeLike);
 
         return router;
+    }
+
+    @Dto(CreatePostDTO)
+    public static async createPost(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await PostsComponent.build().createPost(
+                req.body.dto as CreatePostDTO
+            ))
+        }
+        catch (e) {
+            next(e);
+        }
     }
 
     public static getPosts(req: Request, res: Response) {
