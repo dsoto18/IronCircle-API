@@ -14,7 +14,10 @@ const client = new DynamoDBClient({
 const docClient = DynamoDBDocumentClient.from(client);
 
 const tableName = "prod-bluepnt-app-table";
-const userPK = PK.user(generateUuid());
+const firstUserUuid = generateUuid();
+const secondUserUuid = generateUuid();
+const userPK = PK.user(firstUserUuid);
+const user2PK = PK.user(secondUserUuid);
 
 async function seed() {
   // Create Users table
@@ -45,7 +48,7 @@ async function seed() {
     TableName: tableName,
     Item: {
       PK: { S: userPK },
-      SK: { S: SK.user },
+      SK: { S: SK.profile },
       entity: { S: ENTITY.user },
       firstName: { S: "John" },
       lastName: { S: "Doe" },
@@ -67,7 +70,7 @@ async function seed() {
         PK: { S: PK.username("mrjohndoe") },
         SK: { S: SK.user },
         entity: { S: ENTITY.username },
-        userId: { S: userPK } // maybe only store cuid
+        userId: { S: firstUserUuid }
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
@@ -78,12 +81,62 @@ async function seed() {
         PK: { S: PK.email("johndoe@example.com") },
         SK: { S: SK.user },
         entity: { S: ENTITY.email },
-        userId: { S: userPK }
+        userId: { S: firstUserUuid }
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
 
-  const transaction = [ { Put: userEntry }, { Put: usernameEntry }, { Put: emailEntry } ];
+  // User #2
+  const userEntry2 = {
+    TableName: tableName,
+    Item: {
+      PK: { S: user2PK },
+      SK: { S: SK.profile },
+      entity: { S: ENTITY.user },
+      firstName: { S: "Dan" },
+      lastName: { S: "Smith" },
+      username: { S: "dansmith123" },
+      email: { S: "dansmith@example.com" },
+      password: { S: "password123" },
+      createdAt: { S: new Date().toISOString() },
+      updatedAt: { S: new Date().toISOString() },
+      isVerified: { BOOL: false },
+      bio: { S: "" },
+      profilePictureUrl: { S: "" }
+    },
+    ConditionExpression: "attribute_not_exists(PK)"
+  };
+
+  const usernameEntry2 = {
+    TableName: tableName,
+    Item: {
+        PK: { S: PK.username("dansmith123") },
+        SK: { S: SK.user },
+        entity: { S: ENTITY.username },
+        userId: { S: secondUserUuid } // maybe only store cuid
+    },
+    ConditionExpression: "attribute_not_exists(PK)"
+  }
+
+  const emailEntry2 = {
+    TableName: tableName,
+    Item: {
+        PK: { S: PK.email("dansmith@example.com") },
+        SK: { S: SK.user },
+        entity: { S: ENTITY.email },
+        userId: { S: secondUserUuid }
+    },
+    ConditionExpression: "attribute_not_exists(PK)"
+  }
+
+  const transaction = [ 
+    { Put: userEntry },
+    { Put: usernameEntry },
+    { Put: emailEntry },
+    { Put: userEntry2 },
+    { Put: usernameEntry2 },
+    { Put: emailEntry2 }
+  ];
 
   // Insert items via transaction
   await docClient.send(new TransactWriteItemsCommand({TransactItems: transaction}));

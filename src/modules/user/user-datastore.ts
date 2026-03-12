@@ -1,9 +1,9 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
+import { TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 
 export class UserDatastore {
     
@@ -22,7 +22,8 @@ export class UserDatastore {
 
     public async createUser(insert: CreateUserDTO) {
         // generate PK and SK with dynamo-keys.ts helper functions
-        const partitionKey = PK.user(generateUuid()); 
+        const userUuid = generateUuid();
+        const partitionKey = PK.user(userUuid); 
         const sortKey = SK.profile;
 
         // generate PK and SK values for email + username records
@@ -58,7 +59,7 @@ export class UserDatastore {
                 PK: { S: usernamePK },
                 SK: { S: usernameSK },
                 entity: { S: ENTITY.username },
-                userId: { S: partitionKey } // maybe only store cuid
+                userId: { S: userUuid }
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
@@ -69,7 +70,7 @@ export class UserDatastore {
                 PK: { S: emailPK },
                 SK: { S: emailSK },
                 entity: { S: ENTITY.email },
-                userId: { S: partitionKey } // maybe only store cuid
+                userId: { S: userUuid }
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
@@ -83,43 +84,17 @@ export class UserDatastore {
         }
     }
 
-    public async getUser(identifier: string){
-        // Figure out PK type to use based off if identifier is email or username
-        const isEmail = identifier.includes('@');
-        const pkToFind = isEmail ? PK.email(identifier) : PK.username(identifier);
-
-        // GetItem query for the username/email lock item
-        const lock = await this.dbClient?.send(new GetItemCommand({
+    public async getUserById(userId: string){
+        // GetItem query for the user body using the userId (just uuid form)
+        const user = await this.dbClient?.send(new GetCommand({
             TableName: TABLE_NAME,
             Key: {
-                PK: { S: pkToFind },
-                SK: { S: SK.user }
+                PK: PK.user(userId),
+                SK: SK.profile
             }
         }));
 
-        // grab PK userid from the item returned
-        const userId = lock?.Item?.userId?.S;
-        // if doesn't exist, not found
-        if(!userId){
-            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND)
-        }
-
-        // GetItem query for the user body using the userId
-        const user = await this.dbClient?.send(new GetItemCommand({
-            TableName: TABLE_NAME,
-            Key: {
-                PK: { S: userId },
-                SK: { S: SK.profile }
-            }
-        }));
-
-        if(!user?.Item){
-            // should not reach here since at this point there should be a username or email lock file
-            // if this is thrown this is on me
-            throw new ResourceError("User Entity Item Not Found.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
-        }
-
-        return user?.Item;
+        return user;
     }
 
     public async getUsers(){
@@ -154,7 +129,7 @@ export class UserDatastore {
                 createdAt: { S: new Date().toISOString() },
             },
             ConditionExpression: "attribute_not_exists(PK)"
-        }
+        };
         
         const transaction = [ { Put: entry1 }, { Put: entry2 } ];
         try {
@@ -163,5 +138,31 @@ export class UserDatastore {
         } catch (e) {
             throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public async getUserEmailLock(email: string){
+        // GetItem query for the email lock item
+        const lock = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.email(email),
+                SK: SK.user
+            }
+        }));
+
+        return lock;
+    }
+
+    public async getUsernameLock(username: string){
+        // GetItem query for the username lock item
+        const lock = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.username(username),
+                SK: SK.user
+            }
+        }));
+
+        return lock;
     }
 }

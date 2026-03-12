@@ -20,12 +20,12 @@ export class UserComponent {
         dto.username = dto.username.toLowerCase();
 
         // check if username or email already exist
-        const usernameExists = await this.userDatastore.getUser(dto.username);
-        if(usernameExists){
+        const usernameExists = await this.userDatastore.getUsernameLock(dto.username);
+        if(usernameExists?.Item){
             throw new ResourceError("Username already in use.", ResourceErrorReason.CONFLICT);
         }
-        const emailExists = await this.userDatastore.getUser(dto.email);
-        if(emailExists){
+        const emailExists = await this.userDatastore.getUserEmailLock(dto.email);
+        if(emailExists?.Item){
             throw new ResourceError("Email already in use.", ResourceErrorReason.CONFLICT)
         }
         
@@ -35,7 +35,25 @@ export class UserComponent {
     }
 
     public async getUser(dto: GetUserDTO){
-        return await this.userDatastore.getUser(dto.userIdentifier);
+        const identifier = dto.userIdentifier;
+        const isEmail = identifier.includes('@');
+        const lock = isEmail ? await this.userDatastore.getUserEmailLock(identifier) : await this.userDatastore.getUsernameLock(identifier);
+
+        // grab PK userid from the item returned
+        const userId = lock?.Item?.userId;
+        // if doesn't exist, not found
+        if(!userId){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND)
+        }
+
+        const user = await this.userDatastore.getUserById(userId);
+        if(!user?.Item){
+            // should not reach here since at this point there should be a username or email lock file
+            // if this is thrown this is on me
+            throw new ResourceError("User Entity Item Not Found.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
+
+        return user;
     }
 
     public async getUsers() {
@@ -43,14 +61,18 @@ export class UserComponent {
     }
 
     public async addFollower(followBody: FollowDTO){
+        if(followBody.userId === followBody.following){
+            throw new ResourceError("User cannot follow themself.", ResourceErrorReason.BAD_REQUEST);
+        }
+
         // Get First User
-        const user = await this.userDatastore.getUser(followBody.userId);
-        if(!user){
+        const user = await this.userDatastore.getUserById(followBody.userId);
+        if(!user?.Item){
             throw new ResourceError("User requesting to follow, does not exist.", ResourceErrorReason.NOT_FOUND);
         }
         // Check if user to follow exists
-        const follow = await this.userDatastore.getUser(followBody.following);
-        if(!follow){
+        const follow = await this.userDatastore.getUserById(followBody.following);
+        if(!follow?.Item){
             throw new ResourceError("User to follow, does not exist.", ResourceErrorReason.NOT_FOUND);
         }
 
