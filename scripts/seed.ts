@@ -73,7 +73,7 @@ async function seed() {
   }
 
   const emailEntry = {
-    TableName: "Users",
+    TableName: tableName,
     Item: {
         PK: { S: PK.email("johndoe@example.com") },
         SK: { S: SK.user },

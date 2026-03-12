@@ -1,15 +1,16 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
-import { ENTITY, generateUuid, PK, SK } from "../../services/dynamodb-keys";
+import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
+import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 export class UserDatastore {
     
-    dbClient: DynamoDBClient | undefined;
+    dbClient: DynamoDBDocumentClient | undefined;
 
     constructor(
-        dbClient: DynamoDBClient
+        dbClient: DynamoDBDocumentClient
     ){
         this.dbClient = dbClient;
     }
@@ -32,7 +33,7 @@ export class UserDatastore {
 
         // populate insert body with dto values
         const entry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
                 PK: { S: partitionKey },
                 SK: { S: sortKey },
@@ -52,7 +53,7 @@ export class UserDatastore {
         };
 
         const usernameEntry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
                 PK: { S: usernamePK },
                 SK: { S: usernameSK },
@@ -63,7 +64,7 @@ export class UserDatastore {
         }
 
         const emailEntry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
                 PK: { S: emailPK },
                 SK: { S: emailSK },
@@ -78,36 +79,26 @@ export class UserDatastore {
             const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
             return result;
         } catch (e) {
-            console.log("Error caught in datastore funciton.")
-            console.log(e)
-            
-            return;
+            throw new ResourceError("Create User Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
     }
 
     public async getUser(identifier: string){
+        // Figure out PK type to use based off if identifier is email or username
+        const isEmail = identifier.includes('@');
+        const pkToFind = isEmail ? PK.email(identifier) : PK.username(identifier);
 
-        // GetItem query for the username lock item
-        const usernameLock = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
+        // GetItem query for the username/email lock item
+        const lock = await this.dbClient?.send(new GetItemCommand({
+            TableName: TABLE_NAME,
             Key: {
-                PK: { S: PK.username(identifier) },
+                PK: { S: pkToFind },
                 SK: { S: SK.user }
             }
         }));
 
-        // try GetItem query for email lock item
-        const emailLock = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
-            Key: {
-                PK: { S: PK.email(identifier)},
-                SK: { S: SK.user}
-            }
-        }));
-
-
         // grab PK userid from the item returned
-        const userId = usernameLock?.Item?.userId?.S ?? emailLock?.Item?.userId?.S;
+        const userId = lock?.Item?.userId?.S;
         // if doesn't exist, not found
         if(!userId){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND)
@@ -115,7 +106,7 @@ export class UserDatastore {
 
         // GetItem query for the user body using the userId
         const user = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Key: {
                 PK: { S: userId },
                 SK: { S: SK.profile }
@@ -129,5 +120,48 @@ export class UserDatastore {
         }
 
         return user?.Item;
+    }
+
+    public async getUsers(){
+
+    }
+
+    public async createFollow(follower: string, followee: string){
+        const followsPK = PK.user(follower);
+        const followsSK = SK.follows(followee);
+
+        const followedByPK = PK.user(followee);
+        const followedBySK = SK.followedBy(follower);
+
+        const entry1 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: { S: followsPK },
+                SK: { S: followsSK },
+                entity: { S: ENTITY.user },
+                targetUserId: { S: followee },
+                createdAt: { S: new Date().toISOString() },
+            },
+            ConditionExpression: "attribute_not_exists(PK)"
+        };
+        const entry2 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: { S: followedByPK },
+                SK: { S: followedBySK },
+                entity: { S: ENTITY.follow },
+                sourceUserId: { S: follower },
+                createdAt: { S: new Date().toISOString() },
+            },
+            ConditionExpression: "attribute_not_exists(PK)"
+        }
+        
+        const transaction = [ { Put: entry1 }, { Put: entry2 } ];
+        try {
+            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
+            return result;
+        } catch (e) {
+            throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
     }
 }

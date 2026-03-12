@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from "uuid";
  * Centralized Key Functions to create PK and SK Values
  */
 
+export const TABLE_NAME = "prod-bluepnt-app-table";
+
 export function generateUuid() {
     return uuidv4();
 }
@@ -20,11 +22,14 @@ export const SK = {
   profile: "PROFILE",
   user: "USER",
   completedBy: (userId: string) => `COMPLETED#USER#${userId}`,
+  follows: (userId: string) => `FOLLOWS#${userId}`,
+  followedBy: (userId: string) => `FOLLOWED_BY#${userId}`
 };
 
 export const ENTITY = {
   user: "User",
   plan: "Plan",
   username: "UsernameLock",
-  email: "EmailLock"
+  email: "EmailLock",
+  follow: "Follow"
 }

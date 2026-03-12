@@ -1,5 +1,6 @@
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
+import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserDTO } from "./DTOs/get-user.dto";
 import { UserDatastore } from "./user-datastore";
 
@@ -29,12 +30,36 @@ export class UserComponent {
         }
         
         // hash password
-        
+
         return await this.userDatastore.createUser(dto);
     }
 
     public async getUser(dto: GetUserDTO){
-        console.log(dto);
         return await this.userDatastore.getUser(dto.userIdentifier);
+    }
+
+    public async getUsers() {
+        return await this.userDatastore.getUsers();
+    }
+
+    public async addFollower(followBody: FollowDTO){
+        // Get First User
+        const user = await this.userDatastore.getUser(followBody.userId);
+        if(!user){
+            throw new ResourceError("User requesting to follow, does not exist.", ResourceErrorReason.NOT_FOUND);
+        }
+        // Check if user to follow exists
+        const follow = await this.userDatastore.getUser(followBody.following);
+        if(!follow){
+            throw new ResourceError("User to follow, does not exist.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        // check if this follow relationship already exists
+        const check = false;
+        if(check){
+            throw new ResourceError("Follow relationship already exists.", ResourceErrorReason.CONFLICT);
+        }
+
+        return await this.userDatastore.createFollow(followBody.userId, followBody.following);
     }
 }
