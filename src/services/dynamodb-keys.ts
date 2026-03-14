@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
+import { config } from "../config";
 
 /**
  * Centralized Key Functions to create PK and SK Values
  */
 
-export const TABLE_NAME = "prod-bluepnt-app-table";
+export const TABLE_NAME = config.tableName;
 
 export function generateUuid() {
     return uuidv4();

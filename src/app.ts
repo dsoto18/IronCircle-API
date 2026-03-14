@@ -17,6 +17,10 @@ app.use(ErrorParser);
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World from the Bluepnt API!');
 });
+// for alb health check
+app.get("/health", (_, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}!`);

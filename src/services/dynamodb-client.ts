@@ -1,5 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { config } from "../config";
 
 export class DynamoClient {
 
@@ -9,8 +10,8 @@ export class DynamoClient {
 
     private constructor(){
         this.client = new DynamoDBClient({
-            region: 'us-east-1',
-            endpoint: 'http://dynamodb:8000'
+            region: config.region,
+            endpoint: config.dynamoEndpoint
         });
         this.docClient = DynamoDBDocumentClient.from(this.client);
     }
