@@ -262,6 +262,224 @@ Resources:
               Value: us-east-1
 
 # -----------------------------
+# ECS Task Security Group
+# -----------------------------
+  BlueprintEcsSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-ecs-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for ECS tasks
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref BlueprintAlbSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# ALB Security Group
+# -----------------------------
+  BlueprintAlbSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-alb-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for Application Load Balancer
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# Endpoint Security Group
+# -----------------------------
+  BlueprintEcrEndpointSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-ecr-endpoint-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for ECR interface endpoints
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref BlueprintEcsSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# CloudWatch Endpoint Security Group
+# -----------------------------
+  BlueprintCloudWatchLogsEndpointSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-cwlogs-endpoint-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for CloudWatch Logs interface endpoints
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref BlueprintEcsSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# DynamoDB VPC Endpoint
+# -----------------------------
+  BlueprintDynamoDbVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+# -----------------------------
+# ECR API VPC Endpoint
+# -----------------------------
+  BlueprintEcrApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.api"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintEcrEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# ECR DKR VPC Endpoint
+# -----------------------------
+  BlueprintEcrDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.dkr"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintEcrEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# CloudWatch Logs VPC Endpoint
+# -----------------------------
+  BlueprintCloudWatchLogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.logs"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintCloudWatchLogsEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# S3 VPC Endpoint
+# -----------------------------
+  BlueprintS3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+# -----------------------------
+# ALB
+# -----------------------------
+  BlueprintALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: blueprint-alb
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref BlueprintAlbSG
+      Scheme: internet-facing
+      Type: application
+
+  BlueprintTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: blueprint-api-tg
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+  
+  BlueprintListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref BlueprintTargetGroup
+      LoadBalancerArn: !Ref BlueprintALB
+      Port: 80
+      Protocol: HTTP
+
+# -----------------------------
+# ECS Service
+# -----------------------------
+  BlueprintEcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - BlueprintListener
+    Properties:
+      ServiceName: blueprint-api-service
+      Cluster: !Ref BlueprintECSCluster
+      TaskDefinition: !Ref BlueprintECSTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+          SecurityGroups:
+            - !Ref BlueprintEcsSG
+      LoadBalancers:
+        - ContainerName: blueprint-api
+          ContainerPort: 3000
+          TargetGroupArn: !Ref BlueprintTargetGroup
+
+# -----------------------------
 # Outputs
 # -----------------------------
 
@@ -287,3 +505,12 @@ Outputs:
 
   TaskRoleArn:
     Value: !GetAtt BlueprintTaskRole.Arn
+
+  ALBDNSName:
+    Value: !GetAtt BlueprintALB.DNSName
+
+  ECSClusterName:
+    Value: !Ref BlueprintECSCluster
+
+  ECSServiceName:
+    Value: !Ref BlueprintEcsService

@@ -51,18 +51,25 @@ Blueprint VPC
 ECR Repo setup manually through AWS console, and image was pushed after building locally using the following commands:
 ```
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
-docker tag blueprint-api:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/blueprint-api:latest
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/blueprint-api:latest
+docker tag ironcircle-api:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ironcircle-api:latest
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ironcircle-api:latest
 ```
 
-### Phase 4 - Networking for Containers
+### Phase 4 - Networking for Containers, Traffic Layer, Compute
 - VPC endpoints
 - Security groups
-
-### Phase 5 - Traffic Layer
 - Application Load Balancer
-- Target Group
-- Listener
-
-### Phase 6 - Compute
+  - Target Group
+  - Listener
 - ECS Service
+
+## Deploying with AWS CloudFormation CLI
+The following commands are used to spin up and tear down the environment and all associated resources:
+To Spin up - `aws cloudformation deploy --template-file infrastructure/template.yaml --stack-name blueprint-api --capabilities CAPABILITY_NAMED_IAM`
+Test cycle loop of commands I ran while deving
+```
+aws cloudformation delete-stack --stack-name blueprint-api
+aws cloudformation wait stack-delete-complete --stack-name blueprint-api
+# test updated template with changes
+aws cloudformation deploy --template-file infrastructure/template.yaml --stack-name blueprint-api --capabilities CAPABILITY_NAMED_IAM
+```
