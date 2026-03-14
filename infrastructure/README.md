@@ -10,6 +10,23 @@
 - Private Subnets
 - Route Tables
 
+** Setup **
+VPC
+│
+├─ Internet Gateway
+│
+├─ Public Subnet A
+│     └─ (future ALB)
+│
+├─ Public Subnet B
+│     └─ (future ALB)
+│
+├─ Private Subnet A
+│     └─ (future ECS tasks)
+│
+└─ Private Subnet B
+      └─ (future ECS tasks)
+
 ### Phase 2 - DynamoDB + IAM
 - DynamoDB table
 - Task IAM Role
