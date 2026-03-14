@@ -22,8 +22,6 @@ export class PostsComponent {
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
         }
 
-        console.log(postBody.type);
-        // return await this.postDatastore.createPost(postBody);
-        return;
+        return await this.postDatastore.createPost(postBody);
     }
 }
