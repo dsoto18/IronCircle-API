@@ -31,12 +31,21 @@ VPC
 - DynamoDB table
 - Task IAM Role
 - Task Execution Role
+- CloudWatch log group
+
+** Setup **
+Blueprint VPC
+│
+├─ DynamoDB Table
+│
+├─ IAM Roles
+│
+└─ CloudWatch Logs
 
 ### Phase 3 - ECS Infrastructure
 - ECR repository
 - ECS cluster
 - Task definition
-- CloudWatch log group
 
 ### Phase 4 - Networking for Containers
 - VPC endpoints

@@ -15,7 +15,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: fitness-api-vpc
+          Value: blueprint-api-vpc
 
 # -----------------------------
 # Internet Gateway
@@ -43,7 +43,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: fitness-public-subnet-a
+          Value: blueprint-public-subnet-a
 
   PublicSubnetB:
     Type: AWS::EC2::Subnet
@@ -54,7 +54,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: fitness-public-subnet-b
+          Value: blueprint-public-subnet-b
 
 # -----------------------------
 # Private Subnets
@@ -68,7 +68,7 @@ Resources:
       CidrBlock: 10.0.11.0/24
       Tags:
         - Key: Name
-          Value: fitness-private-subnet-a
+          Value: blueprint-private-subnet-a
 
   PrivateSubnetB:
     Type: AWS::EC2::Subnet
@@ -78,7 +78,7 @@ Resources:
       CidrBlock: 10.0.12.0/24
       Tags:
         - Key: Name
-          Value: fitness-private-subnet-b
+          Value: blueprint-private-subnet-b
 
 # -----------------------------
 # Public Route Table
@@ -139,6 +139,87 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable
 
 # -----------------------------
+# DynamoDB Table
+# -----------------------------
+
+  BlueprintTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: prod-bluepnt-app-table
+      BillingMode: PAY_PER_REQUEST # no capacity management for now
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      Tags:
+        - Key: Name
+          Value: prod-bluepnt-app-table
+
+# -----------------------------
+# CloudWatch Log Group
+# -----------------------------
+
+  BlueprintLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/blueprint-api
+      RetentionInDays: 14
+
+# -----------------------------
+# ECS Task Execution Role
+# -----------------------------
+
+  BlueprintTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: blueprint-ecs-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# -----------------------------
+# ECS Application Task Role
+# -----------------------------
+
+  BlueprintTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: blueprint-api-task-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: blueprint-dynamodb-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt BlueprintTable.Arn
+
+
+# -----------------------------
 # Outputs
 # -----------------------------
 
@@ -152,3 +233,15 @@ Outputs:
 
   PrivateSubnets:
     Value: !Join [",", [!Ref PrivateSubnetA, !Ref PrivateSubnetB]]
+
+  DynamoTableName:
+    Value: !Ref BlueprintTable
+
+  LogGroupName:
+    Value: !Ref BlueprintLogGroup
+
+  TaskExecutionRoleArn:
+    Value: !GetAtt BlueprintTaskExecutionRole.Arn
+
+  TaskRoleArn:
+    Value: !GetAtt BlueprintTaskRole.Arn
