@@ -10,7 +10,7 @@
 - Private Subnets
 - Route Tables
 
-** Setup **
+**Setup**
 VPC
 │
 ├─ Internet Gateway
@@ -33,7 +33,7 @@ VPC
 - Task Execution Role
 - CloudWatch log group
 
-** Setup **
+**Setup**
 Blueprint VPC
 │
 ├─ DynamoDB Table
@@ -46,6 +46,14 @@ Blueprint VPC
 - ECR repository
 - ECS cluster
 - Task definition
+
+**Note:** 
+ECR Repo setup manually through AWS console, and image was pushed after building locally using the following commands:
+```
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+docker tag blueprint-api:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/blueprint-api:latest
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/blueprint-api:latest
+```
 
 ### Phase 4 - Networking for Containers
 - VPC endpoints

@@ -218,6 +218,48 @@ Resources:
                   - dynamodb:DeleteItem
                 Resource: !GetAtt BlueprintTable.Arn
 
+# -----------------------------
+# ECS Cluster
+# -----------------------------
+
+  BlueprintECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: blueprint-ecs-cluster
+
+# -----------------------------
+# ECS Task Definition
+# -----------------------------
+
+  BlueprintECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: blueprint-api-task
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt BlueprintTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt BlueprintTaskRole.Arn
+      ContainerDefinitions:
+        - Name: blueprint-api
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/ironcircle-api:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BlueprintLogGroup
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: blueprint-api
+          Environment:
+            - Name: TABLE_NAME
+              Value: prod-bluepnt-app-table
+            - Name: AWS_REGION
+              Value: us-east-1
 
 # -----------------------------
 # Outputs
