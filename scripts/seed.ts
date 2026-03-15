@@ -1,6 +1,6 @@
 import { ENTITY, PK, SK, generateUuid } from "../src/services/dynamodb-keys"
-import { DynamoDBClient, CreateTableCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient, CreateTableCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { config } from "../src/config";
 
 const client = new DynamoDBClient({
@@ -48,19 +48,19 @@ async function seed() {
   const userEntry = {
     TableName: tableName,
     Item: {
-      PK: { S: userPK },
-      SK: { S: SK.profile },
-      entity: { S: ENTITY.user },
-      firstName: { S: "John" },
-      lastName: { S: "Doe" },
-      username: { S: "mrjohndoe" },
-      email: { S: "johndoe@example.com" },
-      password: { S: "password123" },
-      createdAt: { S: new Date().toISOString() },
-      updatedAt: { S: new Date().toISOString() },
-      isVerified: { BOOL: false },
-      bio: { S: "my name is john doe." },
-      profilePictureUrl: { S: "" }
+      PK: userPK,
+      SK: SK.profile,
+      entity: ENTITY.user,
+      firstName: "John",
+      lastName: "Doe",
+      username: "mrjohndoe",
+      email: "johndoe@example.com",
+      password: "password123",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isVerified: false,
+      bio: "my name is john doe.",
+      profilePictureUrl: ""
     },
     ConditionExpression: "attribute_not_exists(PK)"
   };
@@ -68,10 +68,10 @@ async function seed() {
   const usernameEntry = {
     TableName: tableName,
     Item: {
-        PK: { S: PK.username("mrjohndoe") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.username },
-        userId: { S: firstUserUuid }
+        PK: PK.username("mrjohndoe"),
+        SK: SK.user,
+        entity: ENTITY.username,
+        userId: firstUserUuid
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
@@ -79,10 +79,10 @@ async function seed() {
   const emailEntry = {
     TableName: tableName,
     Item: {
-        PK: { S: PK.email("johndoe@example.com") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.email },
-        userId: { S: firstUserUuid }
+        PK: PK.email("johndoe@example.com"),
+        SK: SK.user,
+        entity: ENTITY.email,
+        userId: firstUserUuid
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
@@ -91,19 +91,19 @@ async function seed() {
   const userEntry2 = {
     TableName: tableName,
     Item: {
-      PK: { S: user2PK },
-      SK: { S: SK.profile },
-      entity: { S: ENTITY.user },
-      firstName: { S: "Dan" },
-      lastName: { S: "Smith" },
-      username: { S: "dansmith123" },
-      email: { S: "dansmith@example.com" },
-      password: { S: "password123" },
-      createdAt: { S: new Date().toISOString() },
-      updatedAt: { S: new Date().toISOString() },
-      isVerified: { BOOL: false },
-      bio: { S: "" },
-      profilePictureUrl: { S: "" }
+      PK: user2PK,
+      SK: SK.profile,
+      entity: ENTITY.user,
+      firstName: "Dan",
+      lastName: "Smith",
+      username: "dansmith123",
+      email: "dansmith@example.com",
+      password: "password123",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isVerified: false,
+      bio: "",
+      profilePictureUrl: ""
     },
     ConditionExpression: "attribute_not_exists(PK)"
   };
@@ -111,10 +111,10 @@ async function seed() {
   const usernameEntry2 = {
     TableName: tableName,
     Item: {
-        PK: { S: PK.username("dansmith123") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.username },
-        userId: { S: secondUserUuid } // maybe only store cuid
+        PK: PK.username("dansmith123"),
+        SK: SK.user,
+        entity: ENTITY.username,
+        userId: secondUserUuid // maybe only store cuid
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
@@ -122,10 +122,10 @@ async function seed() {
   const emailEntry2 = {
     TableName: tableName,
     Item: {
-        PK: { S: PK.email("dansmith@example.com") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.email },
-        userId: { S: secondUserUuid }
+        PK: PK.email("dansmith@example.com"),
+        SK: SK.user,
+        entity: ENTITY.email ,
+        userId: secondUserUuid
     },
     ConditionExpression: "attribute_not_exists(PK)"
   }
@@ -140,9 +140,15 @@ async function seed() {
   ];
 
   // Insert items via transaction
-  await docClient.send(new TransactWriteItemsCommand({TransactItems: transaction}));
+  await docClient.send(new TransactWriteCommand({TransactItems: transaction}));
 
   console.log("Seed data inserted");
+
+  const result = await docClient.send(
+    new ScanCommand({ TableName: tableName })
+  );
+
+  console.log(result.Items);
 }
 
 seed().catch(console.error);
