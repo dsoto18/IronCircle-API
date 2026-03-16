@@ -196,4 +196,18 @@ export class UserDatastore {
         const result = await this.dbClient?.send(command);
         return result;
     }
+
+    public async getProfilesUserFollows(userId: string){
+        const command = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":sk": "FOLLOWS#"
+            }
+        });
+
+        const result = await this.dbClient?.send(command);
+        return result;
+    }
 }

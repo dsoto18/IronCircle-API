@@ -95,4 +95,13 @@ export class UserComponent {
 
         return await this.userDatastore.getUsersFollowers(getFollowers.userId);
     }
+
+    public async getAccountsUserFollows(userId: string){
+        const user = await this.userDatastore.getUserById(userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        return await this.userDatastore.getProfilesUserFollows(userId);
+    }
 }

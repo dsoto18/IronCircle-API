@@ -22,6 +22,7 @@ export const PK = {
 export const SK = {
   profile: "PROFILE",
   user: "USER",
+  postedBy: (userId: string) => `POSTED_BY#${userId}`,
   completedBy: (userId: string) => `COMPLETED#USER#${userId}`,
   follows: (userId: string) => `FOLLOWS#${userId}`,
   followedBy: (userId: string) => `FOLLOWED_BY#${userId}`
