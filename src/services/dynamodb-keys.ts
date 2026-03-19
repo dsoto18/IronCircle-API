@@ -15,14 +15,14 @@ export const PK = {
   user: (id: string) => `USER#${id}`,
   username: (username: string) => `USERNAME#${username}`,
   email: (email: string) => `EMAIL#${email}`,
-  post: (id: string) => `POST#${id}`,
+  post: (authorUserId: string) => `USER#${authorUserId}`, // PK for Post entity, uses UserId for Author
   plan: (id: string) => `PLAN#${id}`,
 };
 
 export const SK = {
   profile: "PROFILE",
   user: "USER",
-  postedBy: (userId: string) => `POSTED_BY#${userId}`,
+  post: (createdAt: string, postId: string) => `POST#${createdAt}#${postId}`,
   completedBy: (userId: string) => `COMPLETED#USER#${userId}`,
   follows: (userId: string) => `FOLLOWS#${userId}`,
   followedBy: (userId: string) => `FOLLOWED_BY#${userId}`
@@ -30,6 +30,7 @@ export const SK = {
 
 export const ENTITY = {
   user: "User",
+  post: "Post",
   plan: "Plan",
   username: "UsernameLock",
   email: "EmailLock",

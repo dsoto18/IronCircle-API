@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { CreatePostDTO } from "./DTOs/create-post.dto";
-import { generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
+import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 
 export class PostsDatastore {
@@ -19,15 +19,18 @@ export class PostsDatastore {
     }
 
     public async createPost(postBody: CreatePostDTO){
+        const timestamp = new Date().toISOString();
         const postId = generateUuid();
-        const postPK = PK.post(postId);
-        const postSK = SK.postedBy(postBody.userId); // verify this is correct pattern
+        const postPK = PK.post(postBody.userId);
+        const postSK = SK.post(timestamp, postId); // verify this is correct pattern
 
         const post = {
             PK: postPK,
             SK: postSK,
+            entity: ENTITY.post,
+            postId: postId,
             userId: postBody.userId,
-            createdAt: new Date().toISOString(),
+            createdAt: timestamp,
             type: postBody.type,
             calories: postBody.calories,
             distance: postBody.distance,
@@ -52,11 +55,12 @@ export class PostsDatastore {
     public async getUsersPosts(userId: string){
         const command = new QueryCommand({
             TableName: TABLE_NAME,
-            KeyConditionExpression: "PK = :pk AND SK = :sk",
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
             ExpressionAttributeValues: {
-                ":pk": PK.user(userId),
-                ":sk": SK.postedBy(userId)
-            }
+                ":pk": PK.post(userId),
+                ":skPrefix": "POST#"
+            },
+            ScanIndexForward: false
         });
 
         const result = this.dbClient?.send(command);

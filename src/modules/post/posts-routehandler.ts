@@ -4,6 +4,7 @@ import { CreatePostDTO } from "./DTOs/create-post.dto";
 import { PostsComponent } from "./posts-component";
 import { GetUsersPostsDTO } from "./DTOs/get-users-posts.dto";
 import { UpdatePostDTO } from "./DTOs/update-post.dto";
+import { GetFeedDTO } from "./DTOs/get-feed.dto";
 
 export class PostsRoutehandler {
     public static build(): Router {
@@ -21,6 +22,9 @@ export class PostsRoutehandler {
         router.get("/post/:postId/likes", this.getLikes);
         router.post("/post/:postId/likes", this.addLike);
         router.delete("/post/:postId/likes", this.removeLike);
+
+        // FEED
+        router.get("/feed/:userId", this.getFeed);
 
         return router;
     }
@@ -48,8 +52,9 @@ export class PostsRoutehandler {
         }
     }
 
-    // TODO: Might Not Need!!
+    // Important Note: Might Not Need!!
     public static getPost(req: Request, res: Response) {
+        // TODO: Get a single post
         return res.json({ message: "Get Post"});
     }
 
@@ -94,5 +99,17 @@ export class PostsRoutehandler {
 
     public static removeLike(req: Request, res: Response){
         return res.json({ message: "Remove Like"});
+    }
+
+    // USER FEED
+    @Dto(GetFeedDTO)
+    public static async getFeed(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await PostsComponent.build().getFeed(
+                req.body.dto as GetFeedDTO
+            ))
+        } catch(e) {
+            next(e);
+        }
     }
 }
