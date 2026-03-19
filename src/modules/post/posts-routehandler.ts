@@ -5,6 +5,8 @@ import { PostsComponent } from "./posts-component";
 import { GetUsersPostsDTO } from "./DTOs/get-users-posts.dto";
 import { UpdatePostDTO } from "./DTOs/update-post.dto";
 import { GetFeedDTO } from "./DTOs/get-feed.dto";
+import { GetLikesDTO } from "./DTOs/get-likes.dto";
+import { AddLikeDTO } from "./DTOs/add-like.dto";
 
 export class PostsRoutehandler {
     public static build(): Router {
@@ -12,15 +14,19 @@ export class PostsRoutehandler {
 
         router.post("/:userId/posts", this.createPost);
         router.get("/:userId/posts", this.getUsersPosts);
-        router.get("/post/:postId", this.getPost);
-        router.patch("/post/:postId", this.updatePost);
-        router.delete("/post/:postId", this.deletePost);
+        router.get("/post/:postId", this.getPost);  // Might Leave Out
+        router.patch("/post/:postId", this.updatePost); // Implement Later
+        router.delete("/post/:postId", this.deletePost); // Implement Later
+
+        // ----------- TODO: Implement Comments in V2 ---------------------
         router.get("/post/:postId/comments", this.getComments);
         router.post("/post/:postId/comments", this.addComment);
         router.patch("/post/:postId/comments", this.updateComment);
         router.delete("/post/:postId/comments", this.deleteComment);
+        // ----------------------------------------------------------------
+
         router.get("/post/:postId/likes", this.getLikes);
-        router.post("/post/:postId/likes", this.addLike);
+        router.post("/likes/:postId", this.addLike);
         router.delete("/post/:postId/likes", this.removeLike);
 
         // FEED
@@ -89,12 +95,26 @@ export class PostsRoutehandler {
         return res.json({ message: "Delete Comment"});
     }
 
-    public static getLikes(req: Request, res: Response){
-        return res.json({ message: "Get Likes"});
+    @Dto(GetLikesDTO)
+    public static async getLikes(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await PostsComponent.build().getLikes(
+                req.body.dto as GetLikesDTO
+            ))
+        } catch (e) {
+            next(e);
+        }
     }
 
-    public static addLike(req: Request, res: Response){
-        return res.json({ message: "Add Like"});
+    @Dto(AddLikeDTO)
+    public static async addLike(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await PostsComponent.build().addLike(
+                req.body.dto as AddLikeDTO
+            ))
+        } catch (e) {
+            next(e);
+        }
     }
 
     public static removeLike(req: Request, res: Response){

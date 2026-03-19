@@ -1,4 +1,4 @@
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, QueryCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { CreatePostDTO } from "./DTOs/create-post.dto";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
@@ -16,6 +16,17 @@ export class PostsDatastore {
     public static build(): PostsDatastore {
         const dbClient = DynamoClient.getInstance().clientInstance;
         return new PostsDatastore(dbClient);
+    }
+
+    public async getPost(userId: string, postId: string, created: string) {
+        const post = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.user(userId),
+                SK: SK.post(created, postId)
+            }
+        }));
+        return post;
     }
 
     public async createPost(postBody: CreatePostDTO){
