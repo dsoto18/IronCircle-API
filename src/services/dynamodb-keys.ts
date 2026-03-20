@@ -25,7 +25,9 @@ export const SK = {
   post: (createdAt: string, postId: string) => `POST#${createdAt}#${postId}`,
   completedBy: (userId: string) => `COMPLETED#USER#${userId}`,
   follows: (userId: string) => `FOLLOWS#${userId}`,
-  followedBy: (userId: string) => `FOLLOWED_BY#${userId}`
+  followedBy: (userId: string) => `FOLLOWED_BY#${userId}`,
+  like: (postId: string, viewerUserId: string) => `LIKE#${postId}#USER${viewerUserId}`,
+  likedPost: (postId: string) => `LIKED_POST#${postId}`
 };
 
 export const ENTITY = {
@@ -34,5 +36,7 @@ export const ENTITY = {
   plan: "Plan",
   username: "UsernameLock",
   email: "EmailLock",
-  follow: "Follow"
+  follow: "Follow",
+  like: "Like",
+  likedPost: "LikedPost"
 }

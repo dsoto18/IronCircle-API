@@ -27,7 +27,7 @@ export class PostsRoutehandler {
 
         router.get("/post/:postId/likes", this.getLikes);
         router.post("/likes/:postId", this.addLike);
-        router.delete("/post/:postId/likes", this.removeLike);
+        router.delete("/likes/:postId", this.removeLike);
 
         // FEED
         router.get("/feed/:userId", this.getFeed);
@@ -117,8 +117,15 @@ export class PostsRoutehandler {
         }
     }
 
-    public static removeLike(req: Request, res: Response){
-        return res.json({ message: "Remove Like"});
+    @Dto(AddLikeDTO) // same content, so reusing for now
+    public static async removeLike(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await PostsComponent.build().removeLike(
+                req.body.dto as AddLikeDTO
+            ))
+        } catch(e) {
+            next(e);
+        }
     }
 
     // USER FEED
