@@ -1,6 +1,7 @@
 import { ENTITY, PK, SK, generateUuid } from "../src/services/dynamodb-keys"
-import { DynamoDBClient, CreateTableCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient, CreateTableCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { config } from "../src/config";
 
 const client = new DynamoDBClient({
   region: "us-east-1",
@@ -12,15 +13,145 @@ const client = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(client);
+const tableName = config.tableName;
 
-const tableName = "prod-bluepnt-app-table";
-const firstUserUuid = generateUuid();
-const secondUserUuid = generateUuid();
-const userPK = PK.user(firstUserUuid);
-const user2PK = PK.user(secondUserUuid);
+type SeedUser = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  bio?: string;
+  isVerified?: boolean;
+  profilePictureUrl?: string;
+};
 
-async function seed() {
-  // Create Users table
+function isoMinutesAgo(minutesAgo: number) {
+  return new Date(Date.now() - minutesAgo * 60 * 1000).toISOString();
+}
+
+function buildUserItems(tableName: string, user: SeedUser) {
+  const now = new Date().toISOString();
+
+  return [
+    {
+      Put: {
+        TableName: tableName,
+        Item: {
+          PK: PK.user(user.userId),
+          SK: SK.profile,
+          entity: ENTITY.user,
+          userId: user.userId,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          username: user.username,
+          email: user.email,
+          password: "password123",
+          createdAt: now,
+          updatedAt: now,
+          isVerified: user.isVerified ?? false,
+          bio: user.bio ?? "",
+          profilePictureUrl: user.profilePictureUrl ?? ""
+        },
+        ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+      }
+    },
+    {
+      Put: {
+        TableName: tableName,
+        Item: {
+          PK: PK.username(user.username),
+          SK: SK.user,
+          entity: ENTITY.username,
+          userId: user.userId
+        },
+        ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+      }
+    },
+    {
+      Put: {
+        TableName: tableName,
+        Item: {
+          PK: PK.email(user.email),
+          SK: SK.user,
+          entity: ENTITY.email,
+          userId: user.userId
+        },
+        ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+      }
+    }
+  ];
+}
+
+function buildFollowItems(tableName: string, sourceUserId: string, targetUserId: string, createdAt: string) {
+  return [
+    {
+      Put: {
+        TableName: tableName,
+        Item: {
+          PK: PK.user(sourceUserId),
+          SK: SK.follows(targetUserId),
+          entity: ENTITY.follow,
+          targetUserId,
+          createdAt
+        },
+        ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+      }
+    },
+    {
+      Put: {
+        TableName: tableName,
+        Item: {
+          PK: PK.user(targetUserId),
+          SK: SK.followedBy(sourceUserId),
+          entity: ENTITY.follow,
+          sourceUserId,
+          createdAt
+        },
+        ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+      }
+    }
+  ];
+}
+
+function buildPostItem(
+  tableName: string,
+  authorUserId: string,
+  createdAt: string,
+  post: {
+    type: string;
+    caption?: string;
+    calories?: number;
+    distance?: string;
+    duration?: number;
+    imageUrl?: string;
+  }
+) {
+  const postId = generateUuid();
+
+  return {
+    Put: {
+      TableName: tableName,
+      Item: {
+        PK: PK.post(authorUserId),
+        SK: SK.post(createdAt, postId),
+        entity: ENTITY.post,
+        postId,
+        userId: authorUserId,
+        createdAt,
+        type: post.type,
+        caption: post.caption ?? "",
+        calories: post.calories,
+        distance: post.distance,
+        duration: post.duration,
+        imageUrl: post.imageUrl ?? ""
+      },
+      ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+    }
+  };
+}
+
+export async function seed(docClient: any, tableName: string) {
   try {
     await client.send(
       new CreateTableCommand({
@@ -42,106 +173,131 @@ async function seed() {
       throw err;
     }
   }
+  const johnId = generateUuid();
+  const danId = generateUuid();
+  const saraId = generateUuid();
+  const mayaId = generateUuid();
 
-  // mock data
-  const userEntry = {
-    TableName: tableName,
-    Item: {
-      PK: { S: userPK },
-      SK: { S: SK.profile },
-      entity: { S: ENTITY.user },
-      firstName: { S: "John" },
-      lastName: { S: "Doe" },
-      username: { S: "mrjohndoe" },
-      email: { S: "johndoe@example.com" },
-      password: { S: "password123" },
-      createdAt: { S: new Date().toISOString() },
-      updatedAt: { S: new Date().toISOString() },
-      isVerified: { BOOL: false },
-      bio: { S: "my name is john doe." },
-      profilePictureUrl: { S: "" }
+  const users: SeedUser[] = [
+    {
+      userId: johnId,
+      firstName: "John",
+      lastName: "Doe",
+      username: "mrjohndoe",
+      email: "johndoe@example.com",
+      bio: "Runner, lifter, and coffee addict.",
+      isVerified: false,
+      profilePictureUrl: ""
     },
-    ConditionExpression: "attribute_not_exists(PK)"
-  };
-
-  const usernameEntry = {
-    TableName: tableName,
-    Item: {
-        PK: { S: PK.username("mrjohndoe") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.username },
-        userId: { S: firstUserUuid }
+    {
+      userId: danId,
+      firstName: "Dan",
+      lastName: "Smith",
+      username: "dansmith123",
+      email: "dansmith@example.com",
+      bio: "HIIT most mornings. Lift at night.",
+      isVerified: false,
+      profilePictureUrl: ""
     },
-    ConditionExpression: "attribute_not_exists(PK)"
-  }
-
-  const emailEntry = {
-    TableName: tableName,
-    Item: {
-        PK: { S: PK.email("johndoe@example.com") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.email },
-        userId: { S: firstUserUuid }
+    {
+      userId: saraId,
+      firstName: "Sara",
+      lastName: "Lee",
+      username: "sweatswithsara",
+      email: "sara@example.com",
+      bio: "Training for my next 10k.",
+      isVerified: true,
+      profilePictureUrl: ""
     },
-    ConditionExpression: "attribute_not_exists(PK)"
-  }
-
-  // User #2
-  const userEntry2 = {
-    TableName: tableName,
-    Item: {
-      PK: { S: user2PK },
-      SK: { S: SK.profile },
-      entity: { S: ENTITY.user },
-      firstName: { S: "Dan" },
-      lastName: { S: "Smith" },
-      username: { S: "dansmith123" },
-      email: { S: "dansmith@example.com" },
-      password: { S: "password123" },
-      createdAt: { S: new Date().toISOString() },
-      updatedAt: { S: new Date().toISOString() },
-      isVerified: { BOOL: false },
-      bio: { S: "" },
-      profilePictureUrl: { S: "" }
-    },
-    ConditionExpression: "attribute_not_exists(PK)"
-  };
-
-  const usernameEntry2 = {
-    TableName: tableName,
-    Item: {
-        PK: { S: PK.username("dansmith123") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.username },
-        userId: { S: secondUserUuid } // maybe only store cuid
-    },
-    ConditionExpression: "attribute_not_exists(PK)"
-  }
-
-  const emailEntry2 = {
-    TableName: tableName,
-    Item: {
-        PK: { S: PK.email("dansmith@example.com") },
-        SK: { S: SK.user },
-        entity: { S: ENTITY.email },
-        userId: { S: secondUserUuid }
-    },
-    ConditionExpression: "attribute_not_exists(PK)"
-  }
-
-  const transaction = [ 
-    { Put: userEntry },
-    { Put: usernameEntry },
-    { Put: emailEntry },
-    { Put: userEntry2 },
-    { Put: usernameEntry2 },
-    { Put: emailEntry2 }
+    {
+      userId: mayaId,
+      firstName: "Maya",
+      lastName: "Patel",
+      username: "mayamoves",
+      email: "maya@example.com",
+      bio: "Pilates, strength, mobility.",
+      isVerified: true,
+      profilePictureUrl: ""
+    }
   ];
 
-  // Insert items via transaction
-  await docClient.send(new TransactWriteItemsCommand({TransactItems: transaction}));
+  const transactItems: any[] = [];
+
+  for (const user of users) {
+    transactItems.push(...buildUserItems(tableName, user));
+  }
+
+  // follows
+  transactItems.push(
+    ...buildFollowItems(tableName, johnId, danId, isoMinutesAgo(120)),
+    ...buildFollowItems(tableName, johnId, saraId, isoMinutesAgo(110)),
+    ...buildFollowItems(tableName, danId, saraId, isoMinutesAgo(100)),
+    ...buildFollowItems(tableName, saraId, mayaId, isoMinutesAgo(90)),
+    ...buildFollowItems(tableName, mayaId, johnId, isoMinutesAgo(80))
+  );
+
+  // posts
+  transactItems.push(
+    buildPostItem(tableName, danId, isoMinutesAgo(65), {
+      type: "Run",
+      distance: "2.3",
+      duration: 1120,
+      caption: "Easy recovery miles today."
+    }),
+    buildPostItem(tableName, danId, isoMinutesAgo(50), {
+      type: "HIIT",
+      duration: 1800,
+      calories: 320,
+      caption: "Quick lunchtime HIIT session."
+    }),
+    buildPostItem(tableName, saraId, isoMinutesAgo(40), {
+      type: "Run",
+      distance: "5.1",
+      duration: 2740,
+      caption: "Tempo run felt strong."
+    }),
+    buildPostItem(tableName, saraId, isoMinutesAgo(20), {
+      type: "Walk",
+      distance: "1.8",
+      duration: 1900,
+      caption: "Cooldown walk after training."
+    }),
+    buildPostItem(tableName, johnId, isoMinutesAgo(10), {
+      type: "Lift",
+      duration: 3600,
+      caption: "Push day. Bench felt great."
+    }),
+    buildPostItem(tableName, mayaId, isoMinutesAgo(5), {
+      type: "Mobility",
+      duration: 1500,
+      caption: "20 minutes of hips + thoracic mobility."
+    })
+  );
+
+  // DynamoDB transact write limit is 25 items max per request
+  for (let i = 0; i < transactItems.length; i += 25) {
+    const chunk = transactItems.slice(i, i + 25);
+    await docClient.send(
+      new TransactWriteCommand({
+        TransactItems: chunk
+      })
+    );
+  }
 
   console.log("Seed data inserted");
+
+  const result = await docClient.send(
+    new ScanCommand({ TableName: tableName })
+  );
+
+  console.dir(result.Items, { depth: null });
+
+  return {
+    johnId,
+    danId,
+    saraId,
+    mayaId
+  };
 }
 
-seed().catch(console.error);
+seed(docClient, tableName).catch(console.error);

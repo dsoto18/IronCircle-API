@@ -1,9 +1,8 @@
-import { TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 
 export class UserDatastore {
     
@@ -36,19 +35,19 @@ export class UserDatastore {
         const entry = {
             TableName: TABLE_NAME,
             Item: {
-                PK: { S: partitionKey },
-                SK: { S: sortKey },
-                entity: { S: ENTITY.user },
-                firstName: { S: insert.firstName },
-                lastName: { S: insert.lastName },
-                username: { S: insert.username },
-                email: { S: insert.email },
-                password: { S: "password123" },
-                createdAt: { S: new Date().toISOString() },
-                updatedAt: { S: new Date().toISOString() },
-                isVerified: { BOOL: false },
-                bio: { S: "" },
-                profilePictureUrl: { S: "" }
+                PK: partitionKey,
+                SK: sortKey,
+                entity: ENTITY.user,
+                firstName: insert.firstName,
+                lastName: insert.lastName,
+                username: insert.username,
+                email: insert.email,
+                password: "password123",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                isVerified: false,
+                bio: "",
+                profilePictureUrl: ""
             },
             ConditionExpression: "attribute_not_exists(PK)"
         };
@@ -56,10 +55,10 @@ export class UserDatastore {
         const usernameEntry = {
             TableName: TABLE_NAME,
             Item: {
-                PK: { S: usernamePK },
-                SK: { S: usernameSK },
-                entity: { S: ENTITY.username },
-                userId: { S: userUuid }
+                PK: usernamePK,
+                SK: usernameSK,
+                entity: ENTITY.username,
+                userId: userUuid
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
@@ -67,17 +66,17 @@ export class UserDatastore {
         const emailEntry = {
             TableName: TABLE_NAME,
             Item: {
-                PK: { S: emailPK },
-                SK: { S: emailSK },
-                entity: { S: ENTITY.email },
-                userId: { S: userUuid }
+                PK: emailPK,
+                SK: emailSK,
+                entity: ENTITY.email,
+                userId: userUuid
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
 
         const transaction = [ { Put: entry }, { Put: usernameEntry }, { Put: emailEntry } ];
         try {
-            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
             return result;
         } catch (e) {
             throw new ResourceError("Create User Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
@@ -140,29 +139,29 @@ export class UserDatastore {
         const entry1 = {
             TableName: TABLE_NAME,
             Item: {
-                PK: { S: followsPK },
-                SK: { S: followsSK },
-                entity: { S: ENTITY.follow },
-                targetUserId: { S: followee },
-                createdAt: { S: createdAt },
+                PK: followsPK,
+                SK: followsSK,
+                entity: ENTITY.follow,
+                targetUserId: followee,
+                createdAt: createdAt,
             },
             ConditionExpression: "attribute_not_exists(SK)"
         };
         const entry2 = {
             TableName: TABLE_NAME,
             Item: {
-                PK: { S: followedByPK },
-                SK: { S: followedBySK },
-                entity: { S: ENTITY.follow },
-                sourceUserId: { S: follower },
-                createdAt: { S: createdAt },
+                PK: followedByPK,
+                SK: followedBySK,
+                entity: ENTITY.follow,
+                sourceUserId: follower,
+                createdAt: createdAt,
             },
             ConditionExpression: "attribute_not_exists(SK)"
         };
         
         const transaction = [ { Put: entry1 }, { Put: entry2 } ];
         try {
-            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
             return result;
         } catch (e) {
             throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
@@ -180,6 +179,35 @@ export class UserDatastore {
                 }
             })
         );
+        return result;
+    }
+
+    public async getUsersFollowers(userId: string){
+        const command = new QueryCommand({
+            TableName: TABLE_NAME,
+
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":sk": "FOLLOWED_BY#"
+            }
+        });
+        const result = await this.dbClient?.send(command);
+        return result;
+    }
+
+    public async getProfilesUserFollows(userId: string){
+        const command = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":sk": "FOLLOWS#"
+            }
+        });
+
+        const result = await this.dbClient?.send(command);
         return result;
     }
 }

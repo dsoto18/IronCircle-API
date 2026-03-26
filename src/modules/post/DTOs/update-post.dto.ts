@@ -1,23 +1,12 @@
 import { IsDefined, IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import { AbstractDto } from "../../../shared/abstract-dto";
 import { Request } from "express";
+import { POST_TYPE, VISIBILITY } from "./create-post.dto";
 
-export enum POST_TYPE {
-    RUN = "Run",
-    LIFT = "Lift",
-    YOGA = "Yoga",
-    SWIM = "Swim",
-    CYCLING = "Cycling",
-    HIIT = "HIIT"
-}
+export class UpdatePostDTO extends AbstractDto {
 
-export enum VISIBILITY {
-    PRIVATE = "private",
-    FOLLOWERS = "followers", // default
-    PUBLIC = "everyone"
-}
-
-export class CreatePostDTO extends AbstractDto {
+    @IsString()
+    postId: string;
 
     @IsString()
     userId: string;
@@ -46,17 +35,17 @@ export class CreatePostDTO extends AbstractDto {
     @IsEnum(VISIBILITY)
     visibility: string;
 
-
     constructor(req: Request){
         super();
 
-        this.userId= req.params.userId as string;
+        this.postId = req.params.postId as string;
+        this.userId = req.body.userId;
         this.type = req.body.type;
         this.distance = req.body.distance;
         this.calories = req.body.calories;
         this.duration = req.body.duration;
         this.imageUrl = req.body.imageUrl;
-        this.caption = req.body.caption;
+        this.caption = req.body.capation;
         this.visibility = req.body.visibility;
     }
 }

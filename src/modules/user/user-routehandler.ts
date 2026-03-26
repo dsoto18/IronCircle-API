@@ -4,6 +4,8 @@ import { Dto } from "../../shared/dto";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { GetUserDTO } from "./DTOs/get-user.dto";
 import { FollowDTO } from "./DTOs/follow.dto";
+import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
+import { GetUserFollowingDTO } from "./DTOs/get-user-following.dto";
 
 export class UserRouteHandler {
     public static build(): Router {
@@ -14,6 +16,8 @@ export class UserRouteHandler {
         router.get("/users/:user", this.getUser);
         router.patch("/users/:username", this.updateUser);
         router.post("/:userId/followers/:followerId", this.addFollower);
+        router.get("/users/:userId/followers", this.getUsersFollowers);
+        router.get("/users/:userId/following", this.getUsersFollowing);
 
         return router;
     }
@@ -66,6 +70,28 @@ export class UserRouteHandler {
         try {
             res.status(200).json(await UserComponent.build().addFollower(
                 req.body.dto as FollowDTO
+            ));
+        } catch(e) {
+            next(e);
+        }
+    }
+
+    @Dto(GetUserFollowersDTO)
+    public static async getUsersFollowers(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await UserComponent.build().getUsersFollowers(
+                req.body.dto as GetUserFollowersDTO
+            ));
+        } catch(e) {
+            next(e);
+        }
+    }
+
+    @Dto(GetUserFollowingDTO)
+    public static async getUsersFollowing(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await UserComponent.build().getAccountsUserFollows(
+                req.body.dto.userId
             ));
         } catch(e) {
             next(e);

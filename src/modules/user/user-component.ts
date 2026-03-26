@@ -2,6 +2,7 @@ import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserDTO } from "./DTOs/get-user.dto";
+import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { UserDatastore } from "./user-datastore";
 
 export class UserComponent {
@@ -84,5 +85,23 @@ export class UserComponent {
         }
 
         return await this.userDatastore.createFollow(followBody.userId, followBody.following);
+    }
+
+    public async getUsersFollowers(getFollowers: GetUserFollowersDTO){
+        const user = await this.userDatastore.getUserById(getFollowers.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        return await this.userDatastore.getUsersFollowers(getFollowers.userId);
+    }
+
+    public async getAccountsUserFollows(userId: string){
+        const user = await this.userDatastore.getUserById(userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        return await this.userDatastore.getProfilesUserFollows(userId);
     }
 }
