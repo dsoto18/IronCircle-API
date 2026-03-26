@@ -1,0 +1,516 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Blueprint API Infrastructure
+
+Resources:
+
+# -----------------------------
+# VPC
+# -----------------------------
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: blueprint-api-vpc
+
+# -----------------------------
+# Internet Gateway
+# -----------------------------
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+# -----------------------------
+# Public Subnets
+# -----------------------------
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: blueprint-public-subnet-a
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: blueprint-public-subnet-b
+
+# -----------------------------
+# Private Subnets
+# -----------------------------
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 10.0.11.0/24
+      Tags:
+        - Key: Name
+          Value: blueprint-private-subnet-a
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: 10.0.12.0/24
+      Tags:
+        - Key: Name
+          Value: blueprint-private-subnet-b
+
+# -----------------------------
+# Public Route Table
+# -----------------------------
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+# -----------------------------
+# Public Route Associations
+# -----------------------------
+
+  PublicSubnetARouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetBRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+# -----------------------------
+# Private Route Table
+# -----------------------------
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+# -----------------------------
+# Private Route Associations
+# -----------------------------
+
+  PrivateSubnetARouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+# -----------------------------
+# DynamoDB Table
+# -----------------------------
+
+  BlueprintTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: prod-bluepnt-app-table
+      BillingMode: PAY_PER_REQUEST # no capacity management for now
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      Tags:
+        - Key: Name
+          Value: prod-bluepnt-app-table
+
+# -----------------------------
+# CloudWatch Log Group
+# -----------------------------
+
+  BlueprintLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/blueprint-api
+      RetentionInDays: 14
+
+# -----------------------------
+# ECS Task Execution Role
+# -----------------------------
+
+  BlueprintTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: blueprint-ecs-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+# -----------------------------
+# ECS Application Task Role
+# -----------------------------
+
+  BlueprintTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: blueprint-api-task-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: blueprint-dynamodb-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt BlueprintTable.Arn
+
+# -----------------------------
+# ECS Cluster
+# -----------------------------
+
+  BlueprintECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: blueprint-ecs-cluster
+
+# -----------------------------
+# ECS Task Definition
+# -----------------------------
+
+  BlueprintECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: blueprint-api-task
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt BlueprintTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt BlueprintTaskRole.Arn
+      ContainerDefinitions:
+        - Name: blueprint-api
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/ironcircle-api:latest"
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BlueprintLogGroup
+              awslogs-region: us-east-1
+              awslogs-stream-prefix: blueprint-api
+          Environment:
+            - Name: TABLE_NAME
+              Value: prod-bluepnt-app-table
+            - Name: AWS_REGION
+              Value: us-east-1
+
+# -----------------------------
+# ECS Task Security Group
+# -----------------------------
+  BlueprintEcsSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-ecs-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for ECS tasks
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref BlueprintAlbSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# ALB Security Group
+# -----------------------------
+  BlueprintAlbSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-alb-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for Application Load Balancer
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# Endpoint Security Group
+# -----------------------------
+  BlueprintEcrEndpointSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-ecr-endpoint-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for ECR interface endpoints
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref BlueprintEcsSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# CloudWatch Endpoint Security Group
+# -----------------------------
+  BlueprintCloudWatchLogsEndpointSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: blueprint-cwlogs-endpoint-sg
+      VpcId: !Ref VPC
+      GroupDescription: Security group for CloudWatch Logs interface endpoints
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref BlueprintEcsSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+# -----------------------------
+# DynamoDB VPC Endpoint
+# -----------------------------
+  BlueprintDynamoDbVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+# -----------------------------
+# ECR API VPC Endpoint
+# -----------------------------
+  BlueprintEcrApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.api"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintEcrEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# ECR DKR VPC Endpoint
+# -----------------------------
+  BlueprintEcrDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.dkr"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintEcrEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# CloudWatch Logs VPC Endpoint
+# -----------------------------
+  BlueprintCloudWatchLogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.logs"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      SecurityGroupIds:
+        - !Ref BlueprintCloudWatchLogsEndpointSG
+      PrivateDnsEnabled: true
+
+# -----------------------------
+# S3 VPC Endpoint
+# -----------------------------
+  BlueprintS3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+# -----------------------------
+# ALB
+# -----------------------------
+  BlueprintALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: blueprint-alb
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      SecurityGroups:
+        - !Ref BlueprintAlbSG
+      Scheme: internet-facing
+      Type: application
+
+  BlueprintTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: blueprint-api-tg
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+  
+  BlueprintListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref BlueprintTargetGroup
+      LoadBalancerArn: !Ref BlueprintALB
+      Port: 80
+      Protocol: HTTP
+
+# -----------------------------
+# ECS Service
+# -----------------------------
+  BlueprintEcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - BlueprintListener
+    Properties:
+      ServiceName: blueprint-api-service
+      Cluster: !Ref BlueprintECSCluster
+      TaskDefinition: !Ref BlueprintECSTaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !Ref PrivateSubnetA
+            - !Ref PrivateSubnetB
+          SecurityGroups:
+            - !Ref BlueprintEcsSG
+      LoadBalancers:
+        - ContainerName: blueprint-api
+          ContainerPort: 3000
+          TargetGroupArn: !Ref BlueprintTargetGroup
+
+# -----------------------------
+# Outputs
+# -----------------------------
+
+Outputs:
+
+  VpcId:
+    Value: !Ref VPC
+
+  PublicSubnets:
+    Value: !Join [",", [!Ref PublicSubnetA, !Ref PublicSubnetB]]
+
+  PrivateSubnets:
+    Value: !Join [",", [!Ref PrivateSubnetA, !Ref PrivateSubnetB]]
+
+  DynamoTableName:
+    Value: !Ref BlueprintTable
+
+  LogGroupName:
+    Value: !Ref BlueprintLogGroup
+
+  TaskExecutionRoleArn:
+    Value: !GetAtt BlueprintTaskExecutionRole.Arn
+
+  TaskRoleArn:
+    Value: !GetAtt BlueprintTaskRole.Arn
+
+  ALBDNSName:
+    Value: !GetAtt BlueprintALB.DNSName
+
+  ECSClusterName:
+    Value: !Ref BlueprintECSCluster
+
+  ECSServiceName:
+    Value: !Ref BlueprintEcsService

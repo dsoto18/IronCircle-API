@@ -5,7 +5,7 @@ import { config } from "../config";
  * Centralized Key Functions to create PK and SK Values
  */
 
-export const TABLE_NAME = config.tableName;
+export const TABLE_NAME: string = config.tableName;
 
 export function generateUuid() {
     return uuidv4();
