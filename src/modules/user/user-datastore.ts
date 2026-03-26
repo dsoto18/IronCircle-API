@@ -1,15 +1,15 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand, TransactWriteItemsCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
-import { ENTITY, generateUuid, PK, SK } from "../../services/dynamodb-keys";
+import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 
 export class UserDatastore {
     
-    dbClient: DynamoDBClient | undefined;
+    dbClient: DynamoDBDocumentClient | undefined;
 
     constructor(
-        dbClient: DynamoDBClient
+        dbClient: DynamoDBDocumentClient
     ){
         this.dbClient = dbClient;
     }
@@ -21,7 +21,8 @@ export class UserDatastore {
 
     public async createUser(insert: CreateUserDTO) {
         // generate PK and SK with dynamo-keys.ts helper functions
-        const partitionKey = PK.user(generateUuid()); 
+        const userUuid = generateUuid();
+        const partitionKey = PK.user(userUuid); 
         const sortKey = SK.profile;
 
         // generate PK and SK values for email + username records
@@ -32,103 +33,181 @@ export class UserDatastore {
 
         // populate insert body with dto values
         const entry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
-                PK: { S: partitionKey },
-                SK: { S: sortKey },
-                entity: { S: ENTITY.user },
-                firstName: { S: insert.firstName },
-                lastName: { S: insert.lastName },
-                username: { S: insert.username },
-                email: { S: insert.email },
-                type: { S: "user" },
-                password: { S: "password123" },
-                createdAt: { S: new Date().toISOString() },
-                updatedAt: { S: new Date().toISOString() },
-                isVerified: { BOOL: false },
-                bio: { S: "" },
-                profilePictureUrl: { S: "" }
+                PK: partitionKey,
+                SK: sortKey,
+                entity: ENTITY.user,
+                firstName: insert.firstName,
+                lastName: insert.lastName,
+                username: insert.username,
+                email: insert.email,
+                password: "password123",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                isVerified: false,
+                bio: "",
+                profilePictureUrl: ""
             },
             ConditionExpression: "attribute_not_exists(PK)"
         };
 
         const usernameEntry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
-                PK: { S: usernamePK },
-                SK: { S: usernameSK },
-                entity: { S: ENTITY.username },
-                userId: { S: partitionKey } // maybe only store cuid
+                PK: usernamePK,
+                SK: usernameSK,
+                entity: ENTITY.username,
+                userId: userUuid
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
 
         const emailEntry = {
-            TableName: "Users",
+            TableName: TABLE_NAME,
             Item: {
-                PK: { S: emailPK },
-                SK: { S: emailSK },
-                entity: { S: ENTITY.email },
-                userId: { S: partitionKey } // maybe only store cuid
+                PK: emailPK,
+                SK: emailSK,
+                entity: ENTITY.email,
+                userId: userUuid
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
 
         const transaction = [ { Put: entry }, { Put: usernameEntry }, { Put: emailEntry } ];
         try {
-            const result = await this.dbClient?.send(new TransactWriteItemsCommand({TransactItems: transaction}))
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
             return result;
         } catch (e) {
-            console.log("Error caught in datastore funciton.")
-            console.log(e)
-            
-            return;
+            throw new ResourceError("Create User Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public async getUser(identifier: string){
+    public async getUserById(userId: string){
+        // GetItem query for the user body using the userId (just uuid form)
+        const user = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.user(userId),
+                SK: SK.profile
+            }
+        }));
 
+        return user;
+    }
+
+    public async getUsers(){
+
+    }
+
+    public async getUserEmailLock(email: string){
+        // GetItem query for the email lock item
+        const lock = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.email(email),
+                SK: SK.user
+            }
+        }));
+
+        return lock;
+    }
+
+    public async getUsernameLock(username: string){
         // GetItem query for the username lock item
-        const usernameLock = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
+        const lock = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
             Key: {
-                PK: { S: PK.username(identifier) },
-                SK: { S: SK.user }
+                PK: PK.username(username),
+                SK: SK.user
             }
         }));
 
-        // try GetItem query for email lock item
-        const emailLock = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
-            Key: {
-                PK: { S: PK.email(identifier)},
-                SK: { S: SK.user}
-            }
-        }));
+        return lock;
+    }
 
+    // TODO: The following two datastore functions for "follows", could be moved to their own datastore file
+    public async createFollow(follower: string, followee: string){
+        const followsPK = PK.user(follower);
+        const followsSK = SK.follows(followee);
 
-        // grab PK userid from the item returned
-        const userId = usernameLock?.Item?.userId?.S ?? emailLock?.Item?.userId?.S;
-        // if doesn't exist, not found
-        if(!userId){
-            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND)
+        const followedByPK = PK.user(followee);
+        const followedBySK = SK.followedBy(follower);
+
+        const createdAt = new Date().toISOString();
+
+        const entry1 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: followsPK,
+                SK: followsSK,
+                entity: ENTITY.follow,
+                targetUserId: followee,
+                createdAt: createdAt,
+            },
+            ConditionExpression: "attribute_not_exists(SK)"
+        };
+        const entry2 = {
+            TableName: TABLE_NAME,
+            Item: {
+                PK: followedByPK,
+                SK: followedBySK,
+                entity: ENTITY.follow,
+                sourceUserId: follower,
+                createdAt: createdAt,
+            },
+            ConditionExpression: "attribute_not_exists(SK)"
+        };
+        
+        const transaction = [ { Put: entry1 }, { Put: entry2 } ];
+        try {
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
+            return result;
+        } catch (e) {
+            throw new ResourceError("Create Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
+    }
 
-        // GetItem query for the user body using the userId
-        const user = await this.dbClient?.send(new GetItemCommand({
-            TableName: "Users",
-            Key: {
-                PK: { S: userId },
-                SK: { S: SK.profile }
+    // TODO: Possibly move into own "followers" datastore file along with above function
+    public async followExists(follower: string, followee: string) {
+        const result = await this.dbClient?.send(
+            new GetCommand({
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(follower),
+                    SK: SK.follows(followee)
+                }
+            })
+        );
+        return result;
+    }
+
+    public async getUsersFollowers(userId: string){
+        const command = new QueryCommand({
+            TableName: TABLE_NAME,
+
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":sk": "FOLLOWED_BY#"
             }
-        }));
+        });
+        const result = await this.dbClient?.send(command);
+        return result;
+    }
 
-        if(!user?.Item){
-            // should not reach here since at this point there should be a username or email lock file
-            // if this is thrown this is on me
-            throw new ResourceError("User Entity Item Not Found.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
-        }
+    public async getProfilesUserFollows(userId: string){
+        const command = new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":sk": "FOLLOWS#"
+            }
+        });
 
-        return user?.Item;
+        const result = await this.dbClient?.send(command);
+        return result;
     }
 }

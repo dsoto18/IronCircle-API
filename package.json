@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API Service for Iron Circle. AIT 725 Software Engineering Case Studies Course - Spring 2026, Towson University.",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --legacy-watch --watch src --ext ts --exec ts-node src/app.ts",
@@ -23,14 +24,15 @@
   "homepage": "https://github.com/dsoto18/IronCircle-API#readme",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.998.0",
-    "@aws-sdk/lib-dynamodb": "^3.998.0",
+    "@aws-sdk/lib-dynamodb": "^3.1007.0",
     "class-validator": "^0.15.1",
     "express": "^5.2.1",
-    "uuid": "^13.0.0"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.2.3",
+    "@types/uuid": "^8.3.4",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
