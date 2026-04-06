@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 import { AbstractDto } from "../../../shared/abstract-dto";
 import { Request } from "express";
 
@@ -48,7 +48,9 @@ export class CreatePlanDTO extends AbstractDto {
     difficulty: string;
 
     @IsNumber()
-    durationWeeks: number;
+    @Min(1)
+    @Max(52)
+    durationWeeks: number; // one week to a year
 
     @IsString()
     @IsEnum(PLAN_TYPE)
