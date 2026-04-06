@@ -241,35 +241,35 @@ export async function seed(docClient: any, tableName: string) {
     buildPostItem(tableName, danId, isoMinutesAgo(65), {
       type: "Run",
       distance: "2.3",
-      duration: 1120,
+      duration: 25,
       caption: "Easy recovery miles today."
     }),
     buildPostItem(tableName, danId, isoMinutesAgo(50), {
       type: "HIIT",
-      duration: 1800,
+      duration: 30,
       calories: 320,
       caption: "Quick lunchtime HIIT session."
     }),
     buildPostItem(tableName, saraId, isoMinutesAgo(40), {
       type: "Run",
       distance: "5.1",
-      duration: 2740,
+      duration: 55,
       caption: "Tempo run felt strong."
     }),
     buildPostItem(tableName, saraId, isoMinutesAgo(20), {
       type: "Walk",
       distance: "1.8",
-      duration: 1900,
+      duration: 60,
       caption: "Cooldown walk after training."
     }),
     buildPostItem(tableName, johnId, isoMinutesAgo(10), {
       type: "Lift",
-      duration: 3600,
+      duration: 135,
       caption: "Push day. Bench felt great."
     }),
     buildPostItem(tableName, mayaId, isoMinutesAgo(5), {
       type: "Mobility",
-      duration: 1500,
+      duration: 20,
       caption: "20 minutes of hips + thoracic mobility."
     })
   );
