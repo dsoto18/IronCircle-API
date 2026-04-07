@@ -7,7 +7,7 @@ export class PostsRoutehandler {
     public static build(): Router {
         const router = Router();
 
-        router.post("/:userId/plans", this.createPlan);
+        router.post("/:userId/plans", this.createPlanMeta);
         router.get("/:userId/plans", this.getUsersPlans);
         router.get("/plan/:planId", this.getPlan);
         router.patch("/plan/:planId", this.updatePlan);
@@ -17,9 +17,9 @@ export class PostsRoutehandler {
     }
 
     @Dto(CreatePlanDTO)
-    public static async createPlan(req: Request, res: Response, next: NextFunction) {
+    public static async createPlanMeta(req: Request, res: Response, next: NextFunction) {
         try {
-            res.status(200).json(await PlansComponent.build().createPlan(
+            res.status(200).json(await PlansComponent.build().createPlanShell(
                 req.body.dto as CreatePlanDTO
             ));
         } catch (e) {

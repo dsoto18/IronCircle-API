@@ -47,14 +47,14 @@ export class CreatePlanDTO extends AbstractDto {
     @IsEnum(PLAN_DIFFICULTY)
     difficulty: string;
 
+    @IsString()
+    @IsEnum(PLAN_TYPE)
+    type: string;
+
     @IsNumber()
     @Min(1)
     @Max(52)
     durationWeeks: number; // one week to a year
-
-    @IsString()
-    @IsEnum(PLAN_TYPE)
-    type: string;
 
     @IsArray()
     @IsString({ each: true })

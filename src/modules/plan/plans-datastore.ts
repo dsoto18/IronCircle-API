@@ -1,6 +1,7 @@
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
-import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
+import { TABLE_NAME } from "../../services/dynamodb-keys";
+import { PlanMeta } from "./types/plan-meta";
 
 export class PlansDatastore {
     
@@ -17,7 +18,33 @@ export class PlansDatastore {
         return new PlansDatastore(dbClient);
     }
 
-    public async createPlan(planBody: any){
+    public async createPlanShellAndRef(planBody: PlanMeta, userReference: any){
+        const transactItems = [
+            {
+                Put: {
+                    TableName: TABLE_NAME,
+                    Item: planBody,
+                    ConditionExpression: "attribute_not_exists(PK)"
+                }
+            },
+            {
+                Put: {
+                    TableName: TABLE_NAME,
+                    Item: userReference,
+                    ConditionExpression: "attribute_not_exists(PK)"
+                }
+            }
+        ];
+
+        try {
+            const result = await this.dbClient?.send(new TransactWriteCommand({
+                TransactItems: transactItems
+            }));
+            return result;
+        } catch (error) {
+            console.error("Error creating plan shell and user reference: ", error);
+            throw error;
+        }
 
     }
 }

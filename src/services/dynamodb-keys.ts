@@ -16,6 +16,7 @@ export const PK = {
   username: (username: string) => `USERNAME#${username}`,
   email: (email: string) => `EMAIL#${email}`,
   post: (authorUserId: string) => `USER#${authorUserId}`, // PK for Post entity, uses UserId for Author
+
   plan: (id: string) => `PLAN#${id}`,
 };
 
@@ -27,7 +28,9 @@ export const SK = {
   follows: (userId: string) => `FOLLOWS#${userId}`,
   followedBy: (userId: string) => `FOLLOWED_BY#${userId}`,
   like: (postId: string, viewerUserId: string) => `LIKE#${postId}#USER${viewerUserId}`,
-  likedPost: (postId: string) => `LIKED_POST#${postId}`
+  likedPost: (postId: string) => `LIKED_POST#${postId}`,
+
+  plan: (createdAt: string, planId: string) => `PLAN#${createdAt}#${planId}`,
 };
 
 export const ENTITY = {
@@ -38,5 +41,6 @@ export const ENTITY = {
   email: "EmailLock",
   follow: "Follow",
   like: "Like",
-  likedPost: "LikedPost"
+  likedPost: "LikedPost",
+  userPlan: "UserPlan"
 }
