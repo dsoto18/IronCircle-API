@@ -1,6 +1,6 @@
-import { DynamoDBDocumentClient, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
-import { TABLE_NAME } from "../../services/dynamodb-keys";
+import { PK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { PlanMeta } from "./types/plan-meta";
 
 export class PlansDatastore {
@@ -46,5 +46,17 @@ export class PlansDatastore {
             throw error;
         }
 
+    }
+
+    public async getUsersPlans(userId: string){
+        const plans = await this.dbClient?.send(new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
+            ExpressionAttributeValues: {
+                ":pk": PK.user(userId),
+                ":skPrefix": `PLAN#`
+            }
+        }));
+        return plans;
     }
 }

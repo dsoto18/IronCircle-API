@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response, Router } from "express";
 import { Dto } from "../../shared/dto";
 import { CreatePlanDTO } from "./DTOs/create-plan.dto";
+import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
 import { PlansComponent } from "./plans-component";
 
 export class PostsRoutehandler {
@@ -43,7 +44,15 @@ export class PostsRoutehandler {
         }
     }
 
-    public static async getUsersPlans() {
+    @Dto(GetUsersPlansDTO)
+    public static async getUsersPlans(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().getUsersPlans(
+                req.body.dto as GetUsersPlansDTO
+            ));
+        } catch(e) {
+            next(e);
+        }
     }
 
     public static async getPlanMeta() {

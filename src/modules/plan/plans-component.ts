@@ -2,6 +2,7 @@ import { ENTITY, generateUuid, PK, SK } from "../../services/dynamodb-keys";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { UserDatastore } from "../user/user-datastore";
 import { CreatePlanDTO } from "./DTOs/create-plan.dto";
+import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
 import { PlansDatastore } from "./plans-datastore";
 import { PlanMeta } from "./types/plan-meta";
 
@@ -55,5 +56,13 @@ export class PlansComponent {
         }
 
         return await this.plansDatastore.createPlanShellAndRef(planBody, userReference);
+    }
+
+    public async getUsersPlans(dto: GetUsersPlansDTO){
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+        return await this.plansDatastore.getUsersPlans(dto.userId);
     }
 }
