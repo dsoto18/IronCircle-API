@@ -3,6 +3,7 @@ import { Dto } from "../../shared/dto";
 import { CreatePlanDTO } from "./DTOs/create-plan.dto";
 import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
 import { PlansComponent } from "./plans-component";
+import { GetPlanMetaDTO } from "./DTOs/get-plan-meta.dto";
 
 export class PostsRoutehandler {
     public static build(): Router {
@@ -55,7 +56,15 @@ export class PostsRoutehandler {
         }
     }
 
-    public static async getPlanMeta() {
+    @Dto(GetPlanMetaDTO)
+    public static async getPlanMeta(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().getPlanMeta(
+                req.body.dto as GetPlanMetaDTO
+            ));
+        } catch(e) {
+            next(e);
+        }
     }
 
     public static async updatePlanMeta() {

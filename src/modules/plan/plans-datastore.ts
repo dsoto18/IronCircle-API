@@ -1,4 +1,4 @@
-import { DynamoDBDocumentClient, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { PK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { PlanMeta } from "./types/plan-meta";
@@ -58,5 +58,16 @@ export class PlansDatastore {
             }
         }));
         return plans;
+    }
+
+    public async getPlanMeta(planId: string){
+        const result = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.plan(planId),
+                SK: "META"
+            }
+        }));
+        return result;
     }
 }
