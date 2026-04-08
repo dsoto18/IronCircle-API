@@ -1,7 +1,8 @@
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { PK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { PlanMeta } from "./types/plan-meta";
+import { ResourceError, ResourceErrorReason } from "../../shared/error";
 
 export class PlansDatastore {
     
@@ -69,5 +70,35 @@ export class PlansDatastore {
             }
         }));
         return result;
+    }
+
+    // TEST THIS FUNCTION - NOT FINAL IMPLEMENTATION - JUST TO TEST UPDATE COMMAND
+    public async updatePlanMeta(updates: any) {
+        const updateCommand = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.plan(updates.planId),
+                SK: "META"
+            },
+            UpdateExpression: "SET title = :title, description = :description, updatedAt = :updatedAt",
+            ExpressionAttributeValues: {
+                ":title": "Updated Plan Title",
+                ":description": "Updated Plan Description",
+                ":updatedAt": new Date().toISOString()
+            },
+            ExpressionAttributeNames: {
+                "#title": "title",
+                "#description": "description"
+            },
+            ConditionExpression: "attribute_exists(PK) AND attribute_exists(SK)",
+            ReturnValues: "ALL_NEW"
+        });
+
+        try {
+            const result = await this.dbClient?.send(updateCommand);
+            return result;
+        } catch (error) {
+            throw new ResourceError("Update Plan Meta Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
     }
 }

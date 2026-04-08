@@ -4,6 +4,7 @@ import { UserDatastore } from "../user/user-datastore";
 import { CreatePlanDTO } from "./DTOs/create-plan.dto";
 import { GetPlanMetaDTO } from "./DTOs/get-plan-meta.dto";
 import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
+import { UpdatePlanMetaDTO } from "./DTOs/update-plan-meta.dto";
 import { PlansDatastore } from "./plans-datastore";
 import { PlanMeta } from "./types/plan-meta";
 
@@ -73,5 +74,35 @@ export class PlansComponent {
             throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
         }
         return plan;
+    }
+
+    public async updatePlanMeta(dto: UpdatePlanMetaDTO){
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if(!plan?.Item){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(plan.Item.userId !== dto.userId){
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(plan.Item.status !== "draft"){
+            throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // For now, just allowing updates to the title and description, but can expand this later if needed
+        const updatedPlanMeta = {
+            planId: dto.planId,
+            title: dto.title ?? plan.Item.title,
+            description: dto.description ?? plan.Item.description,
+            updatedAt: new Date().toISOString()
+        }
+
+        return await this.plansDatastore.updatePlanMeta(updatedPlanMeta);
     }
 }
