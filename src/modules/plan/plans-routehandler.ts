@@ -9,10 +9,16 @@ import { AddWeekNodeDTO } from "./DTOs/post-nodes/add-week-node.dto";
 import { AddDayNodeDTO } from "./DTOs/post-nodes/add-day-node.dto";
 import { AddBlockNodeDTO } from "./DTOs/post-nodes/add-block-node.dto";
 import { AddItemNodeDTO } from "./DTOs/post-nodes/add-item-node.dto";
+import { UpdateWeekNodeDTO } from "./DTOs/patch-nodes/update-week-node.dto";
+import { GetBrowsablePlansDTO } from "./DTOs/plan-meta/browse-plans.dto";
+import { PublishPlanDTO } from "./DTOs/publish.dto";
 
-export class PostsRoutehandler {
+export class PlansRoutehandler {
     public static build(): Router {
         const router = Router();
+
+        // Browse Route
+        router.get("/plans", this.browsePlans);
 
         // -------------- Meta Plan Routes --------------------
         router.post("/:userId/plans", this.createPlanMeta);
@@ -36,7 +42,21 @@ export class PostsRoutehandler {
 
         // Get Full Plan
         router.get("/plan/:planId/full", this.getFullPlan);
+
+        // Publish Plan
+        router.post("/plan/:planId/publish", this.publishPlan);
         return router;
+    }
+
+    @Dto(GetBrowsablePlansDTO)
+    public static async browsePlans(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().getBrowsablePlans(
+                req.body.dto as GetBrowsablePlansDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 
     @Dto(CreatePlanDTO)
@@ -130,7 +150,15 @@ export class PostsRoutehandler {
         }
     }
 
-    public static async updateWeek() {
+    @Dto(UpdateWeekNodeDTO)
+    public static async updateWeek(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().updateWeek(
+                req.body.dto as UpdateWeekNodeDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 
     public static async updateDay() {
@@ -143,5 +171,16 @@ export class PostsRoutehandler {
     }
 
     public static async getFullPlan() {
+    }
+
+    @Dto(PublishPlanDTO)
+    public static async publishPlan(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().publishPlan(
+                req.body.dto as PublishPlanDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 }

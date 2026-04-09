@@ -23,6 +23,32 @@ export class PlansDatastore {
         return new PlansDatastore(dbClient);
     }
 
+    public async getBrowsablePlans(dto: {limit: number, cursor?: string}) {
+        const result = await this.dbClient?.send(
+            new QueryCommand({
+                TableName: TABLE_NAME,
+                IndexName: 'GSI1',
+                KeyConditionExpression: 'GSI1PK = :gsi1pk AND begins_with(GSI1SK, :prefix)',
+                ExpressionAttributeValues: {
+                    ':gsi1pk': 'PLANS',
+                    ':prefix': 'PUBLISHED#',
+                },
+                Limit: dto.limit,
+                ExclusiveStartKey: dto.cursor
+                    ? JSON.parse(Buffer.from(dto.cursor, 'base64').toString('utf-8'))
+                    : undefined,
+                ScanIndexForward: false, // newest first
+            })
+        );
+
+        return {
+            items: (result?.Items ?? []),
+            cursor: result?.LastEvaluatedKey
+                ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+                : undefined,
+        };
+    }
+
     public async createPlanShellAndRef(planBody: PlanMeta, userReference: any){
         const transactItems = [
             {
@@ -74,6 +100,49 @@ export class PlansDatastore {
             }
         }));
         return result;
+    }
+
+    public async publishPlanMeta(
+        planId: string,
+        fields: {
+            status: string;
+            publishedAt: string;
+            updatedAt: string;
+            GSI1PK: string;
+            GSI1SK: string;
+        }
+    ) {
+        return await this.dbClient?.send(
+            new UpdateCommand({
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.plan(planId),
+                    SK: "META",
+                },
+                UpdateExpression: `
+                    SET #status = :status,
+                        #publishedAt = :publishedAt,
+                        #updatedAt = :updatedAt,
+                        #gsi1pk = :gsi1pk,
+                        #gsi1sk = :gsi1sk
+                `,
+                ExpressionAttributeNames: {
+                    "#status": "status",
+                    "#publishedAt": "publishedAt",
+                    "#updatedAt": "updatedAt",
+                    "#gsi1pk": "GSI1PK",
+                    "#gsi1sk": "GSI1SK",
+                },
+                ExpressionAttributeValues: {
+                    ":status": fields.status,
+                    ":publishedAt": fields.publishedAt,
+                    ":updatedAt": fields.updatedAt,
+                    ":gsi1pk": fields.GSI1PK,
+                    ":gsi1sk": fields.GSI1SK,
+                },
+                ReturnValues: "ALL_NEW",
+            })
+        );
     }
 
     // TEST THIS FUNCTION - NOT FINAL IMPLEMENTATION - JUST TO TEST UPDATE COMMAND

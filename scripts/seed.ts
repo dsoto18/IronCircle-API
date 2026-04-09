@@ -163,6 +163,20 @@ export async function seed(docClient: any, tableName: string) {
         AttributeDefinitions: [
           { AttributeName: "PK", AttributeType: "S" },
           { AttributeName: "SK", AttributeType: "S" },
+          { AttributeName: "GSI1PK", AttributeType: "S" },
+          { AttributeName: "GSI1SK", AttributeType: "S" },
+        ],
+        GlobalSecondaryIndexes: [
+          {
+            IndexName: "GSI1",
+            KeySchema: [
+              { AttributeName: "GSI1PK", KeyType: "HASH" },
+              { AttributeName: "GSI1SK", KeyType: "RANGE" },
+            ],
+            Projection: {
+              ProjectionType: "ALL",
+            },
+          },
         ],
         BillingMode: "PAY_PER_REQUEST",
       })

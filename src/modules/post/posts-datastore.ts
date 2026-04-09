@@ -61,7 +61,6 @@ export class PostsDatastore {
             const result = await this.dbClient?.send(new PutCommand(entry))
             return result;
         } catch(e) {
-            console.log(e)
             throw new ResourceError("Create Post Put Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
     }

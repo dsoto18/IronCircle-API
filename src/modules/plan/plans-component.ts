@@ -1,6 +1,8 @@
 import { ENTITY, generateUuid, PK, SK } from "../../services/dynamodb-keys";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { UserDatastore } from "../user/user-datastore";
+import { UpdateWeekNodeDTO } from "./DTOs/patch-nodes/update-week-node.dto";
+import { GetBrowsablePlansDTO } from "./DTOs/plan-meta/browse-plans.dto";
 import { CreatePlanDTO } from "./DTOs/plan-meta/create-plan.dto";
 import { GetPlanMetaDTO } from "./DTOs/plan-meta/get-plan-meta.dto";
 import { GetUsersPlansDTO } from "./DTOs/plan-meta/get-users-plans.dto";
@@ -9,6 +11,7 @@ import { AddBlockNodeDTO } from "./DTOs/post-nodes/add-block-node.dto";
 import { AddDayNodeDTO } from "./DTOs/post-nodes/add-day-node.dto";
 import { AddItemNodeDTO } from "./DTOs/post-nodes/add-item-node.dto";
 import { AddWeekNodeDTO } from "./DTOs/post-nodes/add-week-node.dto";
+import { PublishPlanDTO } from "./DTOs/publish.dto";
 import { PlansDatastore } from "./plans-datastore";
 import { PlanBlock } from "./types/plan-block";
 import { PlanDay } from "./types/plan-day";
@@ -31,6 +34,48 @@ export class PlansComponent {
         const userDatastore = UserDatastore.build();
         const plansDatastore = PlansDatastore.build();
         return new PlansComponent(userDatastore, plansDatastore);
+    }
+
+    public async getBrowsablePlans(dto: GetBrowsablePlansDTO) {
+        const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 50) : 20; // default to 20 if not provided, max 50
+
+        const result = await this.plansDatastore.getBrowsablePlans({
+            limit,
+            cursor: dto.cursor,
+        });
+
+        let plans = result?.items;
+
+        // optional in-memory filtering for now
+        if (dto.type) {
+            plans = plans.filter((plan: any) => plan.type === dto.type);
+        }
+
+        if (dto.goal) {
+            plans = plans.filter((plan: any) => plan.goal === dto.goal);
+        }
+
+        if (dto.difficulty) {
+            plans = plans.filter((plan: any) => plan.difficulty === dto.difficulty);
+        }
+
+        return {
+            plans: plans.map((plan: any) => ({
+                planId: plan.planId,
+                userId: plan.userId,
+                title: plan.title,
+                summary: plan.summary,
+                goal: plan.goal,
+                difficulty: plan.difficulty,
+                durationWeeks: plan.durationWeeks,
+                type: plan.type,
+                tags: plan.tags,
+                coverImageUrl: plan.coverImageUrl,
+                createdAt: plan.createdAt,
+                updatedAt: plan.updatedAt,
+            })),
+            cursor: result.cursor,
+        };
     }
 
     public async createPlanShell(dto: CreatePlanDTO) {
@@ -112,6 +157,37 @@ export class PlansComponent {
         }
 
         return await this.plansDatastore.updatePlanMeta(updatedPlanMeta);
+    }
+
+    // Publish Plan
+    public async publishPlan(dto: PublishPlanDTO) {
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if (!user?.Item) {
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if (!plan?.Item) {
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if (plan.Item.userId !== dto.userId) {
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if (plan.Item.status !== "draft") {
+            throw new ResourceError("Only Draft Plans Can Be Published.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        const now = new Date().toISOString();
+
+        return await this.plansDatastore.publishPlanMeta(dto.planId, {
+            status: "published",
+            publishedAt: now,
+            updatedAt: now,
+            GSI1PK: "PLANS",
+            GSI1SK: `PUBLISHED#${now}#${dto.planId}`,
+        });
     }
 
     // ------------ Node Adding Shell Functions - TODO: Possibly add to own file ----------------------------------
@@ -280,6 +356,13 @@ export class PlansComponent {
         }
 
         return await this.plansDatastore.addItemNodeToBlock(itemNodeBody);
+    }
+
+    // ------------------------- End Node Adding Shell Functions ----------------------------------
+
+    // ----------------------------- Node Updating Functions --------------------------------------
+    public async updateWeek(dto: UpdateWeekNodeDTO){
+
     }
 
     // SPECIFIC NODE HELPER FUNCTIONS TO RETRIEVE LATEST RECORDS
