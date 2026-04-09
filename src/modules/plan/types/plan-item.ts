@@ -8,12 +8,11 @@ export type PlanItem = {
   weekNumber: number | string; // see comments in other types
   dayNumber: number | string;
   blockNumber: number | string;
-  itemId: string;
 
   itemType: string;
   title: string;
   description?: string;
-  order: number;
+  order: number; // used as itemId
 
   createdAt: string;
   updatedAt: string;

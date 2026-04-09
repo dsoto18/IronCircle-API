@@ -136,12 +136,12 @@ export class PlansComponent {
 
         // prep week node body, generate PK and SK with dynamo-keys.ts helper functions
         const currentDate = new Date().toISOString();
-        const weekId = 1; // For now, just defaulting to week 1, but will need to implement logic to determine this value based on existing weeks for the plan
+        const weekNumber = await this.getNextWeekNumber(dto.planId);
         const weekNodeBody: PlanWeek = {
             PK: PK.plan(dto.planId),
-            SK: SK.week(weekId.toString()),
+            SK: SK.week(weekNumber.toString()),
             entity: ENTITY.week,
-            weekNumber: 1,
+            weekNumber: weekNumber,
             createdAt: currentDate,
             updatedAt: currentDate,
             ...dto
@@ -169,11 +169,15 @@ export class PlansComponent {
             throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
         }
 
-        // TODO: Get Week and make sure it exists, needs supporting datastore function
-        // if !week throw new ResourceError("Week Not Found.", ResourceErrorReason.NOT_FOUND);
+        // Check for and verify immediate parent, no need to verify whole ancestor chain
+        const week = await this.plansDatastore.getWeekNode(dto.planId, dto.weekNumber.toString())
+        if(!week?.Item){
+            throw new ResourceError("Week Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
 
         // prep day node body, generate PK and SK with dynamo-keys.ts helper functions
         const currentDate = new Date().toISOString();
+        // TODO: I can move this conversion in the router/dto layer since its formatting concern
         dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
         const dayId = 1; // For now, just defaulting to day 1, but will need to implement logic to determine this value based on existing days for the week
         const dayNodeBody: PlanDay = {
@@ -208,10 +212,11 @@ export class PlansComponent {
             throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
         }
 
-        // TODO: Get Day and make sure it exists, needs supporting datastore function
-        // if !day throw new ResourceError("Day Not Found.", ResourceErrorReason.NOT_FOUND);
-    
-        // Check if week exists too if necessary?? Maybe can get everyting under Partition Key as easiest method
+        // Check Day exists
+        const day = await this.plansDatastore.getDayNode(dto.planId, dto.weekNumber.toString(), dto.dayNumber.toString())
+        if(!day?.Item){
+            throw new ResourceError("Day Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
 
         // prep block node body, generate PK and SK with dynamo-keys.ts helper functions
         const currentDate = new Date().toISOString();
@@ -250,25 +255,96 @@ export class PlansComponent {
             throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
         }
 
-        // TODO: check week/day/block exists, needs supporting datastore function
-        // if !block throw new ResourceError("Block Not Found.", ResourceErrorReason.NOT_FOUND);
+        const block = await this.plansDatastore.getBlockNode(
+            dto.planId,
+            dto.weekNumber.toString(),
+            dto.dayNumber.toString(),
+            dto.blockNumber.toString()
+        );
+        if(!block?.Item){
+            throw new ResourceError("Block Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
 
         // prep block node body, generate PK and SK with dynamo-keys.ts helper functions
         const currentDate = new Date().toISOString();
         dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
         dto.dayNumber = Number(dto.dayNumber);
         dto.blockNumber = Number(dto.blockNumber);
-        const itemId = generateUuid();
         const itemNodeBody: PlanItem = {
             PK: PK.plan(dto.planId),
-            SK: SK.item(dto.weekNumber.toString(), dto.dayNumber.toString(), dto.blockNumber.toString(), itemId.toString()),
+            SK: SK.item(dto.weekNumber.toString(), dto.dayNumber.toString(), dto.blockNumber.toString(), dto.order.toString()),
             entity: ENTITY.item,
-            itemId: itemId,
             createdAt: currentDate,
             updatedAt: currentDate,
             ...dto
         }
 
         return await this.plansDatastore.addItemNodeToBlock(itemNodeBody);
+    }
+
+    // SPECIFIC NODE HELPER FUNCTIONS TO RETRIEVE LATEST RECORDS
+    // Get Next Week Number
+    public async getNextWeekNumber(planId: string): Promise<number> {
+        const weeks = await this.plansDatastore.getSiblingNodesByPrefix<PlanWeek>({
+            planId,
+            skPrefix: 'WEEK#',
+            entity: ENTITY.week,
+        });
+
+        if (weeks.length === 0) return 1;
+
+        const maxWeekNumber = Math.max(...weeks.map((w) => w.weekNumber));
+        return maxWeekNumber + 1;
+    }
+
+    // Get Next Day Number
+    public async getNextDayNumber(planId: string, weekNumber: number): Promise<number> {
+        const weekKey = SK.week(weekNumber.toString()); // e.g. WEEK#01
+
+        const days = await this.plansDatastore.getSiblingNodesByPrefix<PlanDay>({
+            planId,
+            skPrefix: `${weekKey}#DAY#`,
+            entity: ENTITY.day,
+        });
+
+        if (days.length === 0) return 1;
+
+        const maxDayNumber = Math.max(...days.map((d) => d.dayNumber));
+        return maxDayNumber + 1;
+    }
+
+    // Get Next Block Number
+    public async getNextBlockNumber(planId: string, weekNumber: number, dayNumber: number): Promise<number> {
+        const weekKey = SK.week(weekNumber.toString());
+        const dayKey = SK.day(weekNumber.toString(), dayNumber.toString());
+
+        const blocks = await this.plansDatastore.getSiblingNodesByPrefix<PlanBlock>({
+            planId,
+            skPrefix: `${weekKey}#${dayKey}#BLOCK#`,
+            entity: ENTITY.block,
+        });
+
+        if (blocks.length === 0) return 1;
+
+        const maxBlockNumber = Math.max(...blocks.map((b) => b.blockNumber));
+        return maxBlockNumber + 1;
+    }
+
+    // Get Next Item Order Number
+    public async getNextItemOrder(planId: string, weekNumber: number, dayNumber: number, blockNumber: number): Promise<number> {
+        const weekKey = SK.week(weekNumber.toString());
+        const dayKey = SK.day(weekNumber.toString(), dayNumber.toString());
+        const blockKey = SK.block(weekNumber.toString(), dayNumber.toString(), blockNumber.toString());
+
+        const items = await this.plansDatastore.getSiblingNodesByPrefix<PlanItem>({
+            planId,
+            skPrefix: `${weekKey}#${dayKey}#${blockKey}#ITEM#`,
+            entity: ENTITY.item,
+        });
+
+        if (items.length === 0) return 1;
+
+        const maxOrder = Math.max(...items.map((i) => i.order ?? 0));
+        return maxOrder + 1;
     }
 }

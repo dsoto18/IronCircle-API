@@ -1,6 +1,6 @@
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
-import { PK, TABLE_NAME } from "../../services/dynamodb-keys";
+import { PK, TABLE_NAME , ENTITY, SK } from "../../services/dynamodb-keys";
 import { PlanMeta } from "./types/plan-meta";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { PlanWeek } from "./types/plan-week";
@@ -160,4 +160,63 @@ export class PlansDatastore {
         const result = await this.dbClient?.send(new PutCommand(entry));
         return result;
     }
+
+    // ------------- Get Single Node Functions -----------------
+    public async getWeekNode(planId: string, weekNumber: string){
+        const result = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.plan(planId),
+                SK: SK.week(weekNumber.toString())
+            }
+        }));
+        return result;
+    }
+
+    public async getDayNode(planId: string, weekNumber: string, dayNumber: string){
+        const result = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.plan(planId),
+                SK: SK.day(weekNumber.toString(), dayNumber.toString())
+            }
+        }));
+        return result;
+    }
+
+    public async getBlockNode(planId: string, weekNumber: string, dayNumber: string, blockNumber: string){
+        const result = await this.dbClient?.send(new GetCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.plan(planId),
+                SK: SK.block(weekNumber.toString(), dayNumber.toString(), blockNumber.toString())
+            }
+        }));
+        return result;
+    }
+    
+    // ------------- Get Sibling Node Helper Function --------------------
+    public async getSiblingNodesByPrefix<T>({planId, skPrefix, entity }: GetSiblingNodesByPrefixArgs): Promise<T[]> {
+        const result = await this.dbClient?.send(
+            new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+            ExpressionAttributeValues: {
+                ':pk': PK.plan(planId),
+                ':skPrefix': skPrefix,
+            },
+            })
+        );
+
+        const items = (result?.Items ?? []) as T[];
+
+        return items.filter((item: any) => item.entity === entity);
+    }
 }
+
+// used in getSiblingNodesByPrefix function to type the arguments
+type GetSiblingNodesByPrefixArgs = {
+  planId: string;
+  skPrefix: string;
+  entity: typeof ENTITY.week | typeof ENTITY.day | typeof ENTITY.block | typeof ENTITY.item;
+};
