@@ -1,16 +1,16 @@
 // Where most the real content lives, kept generic with alot of specialized fields depending on Item Type
 export type PlanItem = {
   PK: string; // PLAN#<planId>
-  SK: `WEEK#${string}#DAY#${string}#BLOCK#${string}#ITEM#${string}`;
-  entity: 'PLAN_ITEM';
+  SK: string; // `WEEK#${string}#DAY#${string}#BLOCK#${string}#ITEM#${string}`
+  entity: string;
 
   planId: string;
-  weekNumber: number;
-  dayNumber: number;
-  blockNumber: number;
+  weekNumber: number | string; // see comments in other types
+  dayNumber: number | string;
+  blockNumber: number | string;
   itemId: string;
 
-  itemType: 'exercise' | 'meal' | 'note';
+  itemType: string;
   title: string;
   description?: string;
   order: number;
@@ -33,9 +33,10 @@ export type PlanItem = {
   proteinGrams?: number;
   carbsGrams?: number;
   fatGrams?: number;
-  ingredients?: Array<{
-    name: string;
-    quantity?: string;
-  }>;
+  //   ingredients?: Array<{
+  //     name: string;
+  //     quantity?: string;
+  //   }>;
+  ingredients?: string[]; // for simplicity, just an array of ingredient names for now, but can be expanded to include quantities and other details if needed
   recipeUrl?: string;
 };

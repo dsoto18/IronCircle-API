@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { IsString } from "class-validator";
-import { AbstractDto } from "../../../shared/abstract-dto";
+import { AbstractDto } from "../../../../shared/abstract-dto";
 
 export class GetUsersPlansDTO extends AbstractDto {
     

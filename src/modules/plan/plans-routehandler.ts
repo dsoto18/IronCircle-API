@@ -1,10 +1,14 @@
 import { NextFunction, Request, Response, Router } from "express";
 import { Dto } from "../../shared/dto";
-import { CreatePlanDTO } from "./DTOs/create-plan.dto";
-import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
+import { CreatePlanDTO } from "./DTOs/plan-meta/create-plan.dto";
+import { GetUsersPlansDTO } from "./DTOs/plan-meta/get-users-plans.dto";
 import { PlansComponent } from "./plans-component";
-import { GetPlanMetaDTO } from "./DTOs/get-plan-meta.dto";
-import { UpdatePlanMetaDTO } from "./DTOs/update-plan-meta.dto";
+import { GetPlanMetaDTO } from "./DTOs/plan-meta/get-plan-meta.dto";
+import { UpdatePlanMetaDTO } from "./DTOs/plan-meta/update-plan-meta.dto";
+import { AddWeekNodeDTO } from "./DTOs/post-nodes/add-week-node.dto";
+import { AddDayNodeDTO } from "./DTOs/post-nodes/add-day-node.dto";
+import { AddBlockNodeDTO } from "./DTOs/post-nodes/add-block-node.dto";
+import { AddItemNodeDTO } from "./DTOs/post-nodes/add-item-node.dto";
 
 export class PostsRoutehandler {
     public static build(): Router {
@@ -79,19 +83,51 @@ export class PostsRoutehandler {
          }
     }
 
-    public static async deletePlan() {
+    public static async deletePlan() { // TODO: Implement Later
     }
 
-    public static async addWeekToPlan() {
+    @Dto(AddWeekNodeDTO)
+    public static async addWeekToPlan(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().addWeekToPlan(
+                req.body.dto as AddWeekNodeDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 
-    public static async addDayToWeek() {
+    @Dto(AddDayNodeDTO)
+    public static async addDayToWeek(req: Request, res: Response, next: NextFunction) {
+         try {
+             res.status(200).json(await PlansComponent.build().addDayToWeek(
+                 req.body.dto as AddDayNodeDTO
+             ));
+         } catch (e) {
+             next(e);
+         }
     }
 
-    public static async addBlockToDay() {
+    @Dto(AddBlockNodeDTO)
+    public static async addBlockToDay(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().addBlockToDay(
+                req.body.dto as AddBlockNodeDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 
-    public static async addItemToBlock() {
+    @Dto(AddItemNodeDTO)
+    public static async addItemToBlock(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().addItemToBlock(
+                req.body.dto as AddItemNodeDTO
+            ));
+        } catch (e) {
+            next(e);
+        }
     }
 
     public static async updateWeek() {

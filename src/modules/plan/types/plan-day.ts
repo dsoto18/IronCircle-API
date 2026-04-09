@@ -1,11 +1,11 @@
 // holds the day structure
 export type PlanDay = {
-    PK: string;
-    SK: `WEEK#${string}DAY#${string}`;
+    PK: string; // "PLAN#<planId>"
+    SK: string; // `WEEK#${string}DAY#${string}`
     entity: string;
 
     planId: string;
-    weekNumber: number;
+    weekNumber: number | string; // allowing string for now since it comes from req.body, but will convert to number in the component logic
     dayNumber: number;
 
     title?: string;

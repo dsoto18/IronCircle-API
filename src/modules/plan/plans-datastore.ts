@@ -1,8 +1,12 @@
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoClient } from "../../services/dynamodb-client";
 import { PK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { PlanMeta } from "./types/plan-meta";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
+import { PlanWeek } from "./types/plan-week";
+import { PlanBlock } from "./types/plan-block";
+import { PlanDay } from "./types/plan-day";
+import { PlanItem } from "./types/plan-item";
 
 export class PlansDatastore {
     
@@ -114,5 +118,46 @@ export class PlansDatastore {
         } catch (error) {
             throw new ResourceError("Update Plan Meta Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // ------------- Node Specific Functions - TODO: Move to own file? -----------------
+    public async addWeekNodeToPlan(weekNodeBody: PlanWeek){
+        const entry = {
+            TableName: TABLE_NAME,
+            Item: weekNodeBody,
+            ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+        };
+        const result = await this.dbClient?.send(new PutCommand(entry));
+        return result;
+    }
+
+    public async addDayNodeToWeek(dayNodeBody: PlanDay){
+        const entry = {
+            TableName: TABLE_NAME,
+            Item: dayNodeBody,
+            ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+        };
+        const result = await this.dbClient?.send(new PutCommand(entry));
+        return result;
+    }
+
+    public async addBlockNodeToDay(blockNodeBody: PlanBlock){
+        const entry = {
+            TableName: TABLE_NAME,
+            Item: blockNodeBody,
+            ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+        };
+        const result = await this.dbClient?.send(new PutCommand(entry));
+        return result;
+    }
+
+    public async addItemNodeToBlock(itemNodeBody: PlanItem){
+        const entry = {
+            TableName: TABLE_NAME,
+            Item: itemNodeBody,
+            ConditionExpression: "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+        };
+        const result = await this.dbClient?.send(new PutCommand(entry));
+        return result;
     }
 }

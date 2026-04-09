@@ -31,6 +31,10 @@ export const SK = {
   likedPost: (postId: string) => `LIKED_POST#${postId}`,
 
   plan: (createdAt: string, planId: string) => `PLAN#${createdAt}#${planId}`,
+  week: (weekId: string) => `WEEK#${weekId}`,
+  day: (weekId: string, dayId: string) => `WEEK#${weekId}DAY#${dayId}`,
+  block: (weekId: string, dayId: string, blockId: string) => `WEEK#${weekId}DAY#${dayId}BLOCK#${blockId}`,
+  item: (weekId: string, dayId: string, blockId: string, itemId: string) => `WEEK#${weekId}DAY#${dayId}BLOCK#${blockId}ITEM#${itemId}`,
 };
 
 export const ENTITY = {
@@ -42,5 +46,11 @@ export const ENTITY = {
   follow: "Follow",
   like: "Like",
   likedPost: "LikedPost",
-  userPlan: "UserPlan"
+  userPlan: "UserPlan",
+
+  // For Plan Entity, we have multiple "sub-entities" for different nodes
+  week: "PlanWeek",
+  day: "PlanDay",
+  block: "PlanBlock",
+  item: "PlanItem"
 }

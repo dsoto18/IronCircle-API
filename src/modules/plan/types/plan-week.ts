@@ -1,7 +1,7 @@
 // describes the week, does not hold all the days. Mostly an orgnanizational record
 export type PlanWeek = {
-    PK: string;
-    SK: `WEEK#${string}`;
+    PK: string; // same as plan ex. "PLAN#<planId>
+    SK: string; // `WEEK#${string}` ex. "WEEK#1"
     entity: string;
     
     planId: string;

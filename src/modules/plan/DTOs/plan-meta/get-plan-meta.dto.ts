@@ -1,5 +1,5 @@
 import { IsString } from "class-validator";
-import { AbstractDto } from "../../../shared/abstract-dto";
+import { AbstractDto } from "../../../../shared/abstract-dto";
 import { Request } from "express";
 
 export class GetPlanMetaDTO extends AbstractDto {

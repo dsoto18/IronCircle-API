@@ -1,12 +1,20 @@
 import { ENTITY, generateUuid, PK, SK } from "../../services/dynamodb-keys";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { UserDatastore } from "../user/user-datastore";
-import { CreatePlanDTO } from "./DTOs/create-plan.dto";
-import { GetPlanMetaDTO } from "./DTOs/get-plan-meta.dto";
-import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
-import { UpdatePlanMetaDTO } from "./DTOs/update-plan-meta.dto";
+import { CreatePlanDTO } from "./DTOs/plan-meta/create-plan.dto";
+import { GetPlanMetaDTO } from "./DTOs/plan-meta/get-plan-meta.dto";
+import { GetUsersPlansDTO } from "./DTOs/plan-meta/get-users-plans.dto";
+import { UpdatePlanMetaDTO } from "./DTOs/plan-meta/update-plan-meta.dto";
+import { AddBlockNodeDTO } from "./DTOs/post-nodes/add-block-node.dto";
+import { AddDayNodeDTO } from "./DTOs/post-nodes/add-day-node.dto";
+import { AddItemNodeDTO } from "./DTOs/post-nodes/add-item-node.dto";
+import { AddWeekNodeDTO } from "./DTOs/post-nodes/add-week-node.dto";
 import { PlansDatastore } from "./plans-datastore";
+import { PlanBlock } from "./types/plan-block";
+import { PlanDay } from "./types/plan-day";
+import { PlanItem } from "./types/plan-item";
 import { PlanMeta } from "./types/plan-meta";
+import { PlanWeek } from "./types/plan-week";
 
 
 // Implemented a different pattern here, preparting the body in the component layer and passing down to the datastore,
@@ -104,5 +112,163 @@ export class PlansComponent {
         }
 
         return await this.plansDatastore.updatePlanMeta(updatedPlanMeta);
+    }
+
+    // ------------ Node Adding Shell Functions - TODO: Possibly add to own file ----------------------------------
+    public async addWeekToPlan(dto: AddWeekNodeDTO) {
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if(!plan?.Item){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(plan.Item.userId !== dto.userId){
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(plan.Item.status !== "draft"){
+            throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // prep week node body, generate PK and SK with dynamo-keys.ts helper functions
+        const currentDate = new Date().toISOString();
+        const weekId = 1; // For now, just defaulting to week 1, but will need to implement logic to determine this value based on existing weeks for the plan
+        const weekNodeBody: PlanWeek = {
+            PK: PK.plan(dto.planId),
+            SK: SK.week(weekId.toString()),
+            entity: ENTITY.week,
+            weekNumber: 1,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+            ...dto
+        }
+
+        return await this.plansDatastore.addWeekNodeToPlan(weekNodeBody);
+    }
+
+    public async addDayToWeek(dto: AddDayNodeDTO) {
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if(!plan?.Item){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(plan.Item.userId !== dto.userId){
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(plan.Item.status !== "draft"){
+            throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // TODO: Get Week and make sure it exists, needs supporting datastore function
+        // if !week throw new ResourceError("Week Not Found.", ResourceErrorReason.NOT_FOUND);
+
+        // prep day node body, generate PK and SK with dynamo-keys.ts helper functions
+        const currentDate = new Date().toISOString();
+        dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
+        const dayId = 1; // For now, just defaulting to day 1, but will need to implement logic to determine this value based on existing days for the week
+        const dayNodeBody: PlanDay = {
+            PK: PK.plan(dto.planId),
+            SK: SK.day(dto.weekNumber.toString(), dayId.toString()),
+            entity: ENTITY.day,
+            dayNumber: dayId,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+            ...dto
+        }
+
+        return await this.plansDatastore.addDayNodeToWeek(dayNodeBody);
+    }
+
+    public async addBlockToDay(dto: AddBlockNodeDTO) {
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if(!plan?.Item){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(plan.Item.userId !== dto.userId){
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(plan.Item.status !== "draft"){
+            throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // TODO: Get Day and make sure it exists, needs supporting datastore function
+        // if !day throw new ResourceError("Day Not Found.", ResourceErrorReason.NOT_FOUND);
+    
+        // Check if week exists too if necessary?? Maybe can get everyting under Partition Key as easiest method
+
+        // prep block node body, generate PK and SK with dynamo-keys.ts helper functions
+        const currentDate = new Date().toISOString();
+        dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
+        dto.dayNumber = Number(dto.dayNumber);
+        const blockId = 1; // For now, just defaulting to block 1, but will need to implement logic to determine this value based on existing blocks for the day
+        const blockNodeBody: PlanBlock = {
+            PK: PK.plan(dto.planId),
+            SK: SK.block(dto.weekNumber.toString(), dto.dayNumber.toString(), blockId.toString()),
+            entity: ENTITY.block,
+            blockNumber: blockId,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+            ...dto
+        }
+
+        return await this.plansDatastore.addBlockNodeToDay(blockNodeBody);
+    }
+
+    public async addItemToBlock(dto: AddItemNodeDTO) {
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        const plan = await this.plansDatastore.getPlanMeta(dto.planId);
+        if(!plan?.Item){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(plan.Item.userId !== dto.userId){
+            throw new ResourceError("User Is Not The Owner Of The Plan.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(plan.Item.status !== "draft"){
+            throw new ResourceError("Only Plans In Draft Status Can Be Updated.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // TODO: check week/day/block exists, needs supporting datastore function
+        // if !block throw new ResourceError("Block Not Found.", ResourceErrorReason.NOT_FOUND);
+
+        // prep block node body, generate PK and SK with dynamo-keys.ts helper functions
+        const currentDate = new Date().toISOString();
+        dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
+        dto.dayNumber = Number(dto.dayNumber);
+        dto.blockNumber = Number(dto.blockNumber);
+        const itemId = generateUuid();
+        const itemNodeBody: PlanItem = {
+            PK: PK.plan(dto.planId),
+            SK: SK.item(dto.weekNumber.toString(), dto.dayNumber.toString(), dto.blockNumber.toString(), itemId.toString()),
+            entity: ENTITY.item,
+            itemId: itemId,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+            ...dto
+        }
+
+        return await this.plansDatastore.addItemNodeToBlock(itemNodeBody);
     }
 }
