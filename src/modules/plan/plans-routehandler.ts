@@ -4,6 +4,7 @@ import { CreatePlanDTO } from "./DTOs/create-plan.dto";
 import { GetUsersPlansDTO } from "./DTOs/get-users-plans.dto";
 import { PlansComponent } from "./plans-component";
 import { GetPlanMetaDTO } from "./DTOs/get-plan-meta.dto";
+import { UpdatePlanMetaDTO } from "./DTOs/update-plan-meta.dto";
 
 export class PostsRoutehandler {
     public static build(): Router {
@@ -13,8 +14,8 @@ export class PostsRoutehandler {
         router.post("/:userId/plans", this.createPlanMeta);
         router.get("/:userId/plans", this.getUsersPlans);
         router.get("/plan/:planId", this.getPlanMeta);
-        router.patch("/plan/:planId", this.updatePlanMeta);
-        router.delete("/plan/:planId", this.deletePlan);
+        router.patch("/:userId/plan/:planId", this.updatePlanMeta);
+        router.delete("/plan/:planId", this.deletePlan); // TODO: Implement Later
         // ----------------------------------------------------
 
         // POST Nodes
@@ -67,7 +68,15 @@ export class PostsRoutehandler {
         }
     }
 
-    public static async updatePlanMeta() {
+    @Dto(UpdatePlanMetaDTO)
+    public static async updatePlanMeta(req: Request, res: Response, next: NextFunction) {
+         try {
+             res.status(200).json(await PlansComponent.build().updatePlanMeta(
+                 req.body.dto as UpdatePlanMetaDTO
+             ));
+         } catch (e) {
+             next(e);
+         }
     }
 
     public static async deletePlan() {

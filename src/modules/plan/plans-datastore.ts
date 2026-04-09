@@ -74,24 +74,38 @@ export class PlansDatastore {
 
     // TEST THIS FUNCTION - NOT FINAL IMPLEMENTATION - JUST TO TEST UPDATE COMMAND
     public async updatePlanMeta(updates: any) {
+        // build the update expression dynamically TODO: Move this logic into its own helper function
+        let expressionNames: Record<string, string> = {
+            "#updatedAt": "updatedAt"
+        };
+        let expressionValues: Record<string, string> = {
+            ":updatedAt": new Date().toISOString()
+        };
+        const setExpressions = ["#updatedAt = :updatedAt"];
+        if (updates.title !== undefined) { // undefined check allows us to store null ex.- remove field
+            expressionNames["#title"] = "title";
+            expressionValues[":title"] = updates.title;
+            setExpressions.push("#title = :title");
+        }
+
+        if (updates.description !== undefined) {
+            expressionNames["#description"] = "description";
+            expressionValues[":description"] = updates.description;
+            setExpressions.push("#description = :description");
+        }
+
+        // perform update query
         const updateCommand = new UpdateCommand({
             TableName: TABLE_NAME,
             Key: {
                 PK: PK.plan(updates.planId),
                 SK: "META"
             },
-            UpdateExpression: "SET title = :title, description = :description, updatedAt = :updatedAt",
-            ExpressionAttributeValues: {
-                ":title": "Updated Plan Title",
-                ":description": "Updated Plan Description",
-                ":updatedAt": new Date().toISOString()
-            },
-            ExpressionAttributeNames: {
-                "#title": "title",
-                "#description": "description"
-            },
+            UpdateExpression: `SET ${setExpressions.join(", ")}`,
+            ExpressionAttributeNames: expressionNames,
+            ExpressionAttributeValues: expressionValues,
             ConditionExpression: "attribute_exists(PK) AND attribute_exists(SK)",
-            ReturnValues: "ALL_NEW"
+            ReturnValues: "ALL_NEW" // returns the updated item after the update is applied
         });
 
         try {
