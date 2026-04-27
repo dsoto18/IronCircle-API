@@ -12,6 +12,7 @@ import { AddItemNodeDTO } from "./DTOs/post-nodes/add-item-node.dto";
 import { UpdateWeekNodeDTO } from "./DTOs/patch-nodes/update-week-node.dto";
 import { GetBrowsablePlansDTO } from "./DTOs/plan-meta/browse-plans.dto";
 import { PublishPlanDTO } from "./DTOs/publish.dto";
+import { GetFullPlanDTO } from "./DTOs/get-full-plan.dto";
 
 export class PlansRoutehandler {
     public static build(): Router {
@@ -170,7 +171,15 @@ export class PlansRoutehandler {
     public static async updateItem() {
     }
 
-    public static async getFullPlan() {
+    @Dto(GetFullPlanDTO)
+    public static async getFullPlan(req: Request, res: Response, next: NextFunction) {
+        try {
+            res.status(200).json(await PlansComponent.build().getFullPlan(
+                req.body.dto as GetPlanMetaDTO
+            ));
+        } catch(e) {
+            next(e);
+        }
     }
 
     @Dto(PublishPlanDTO)

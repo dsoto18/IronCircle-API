@@ -1,10 +1,11 @@
 export type PlanMeta = {
-    PK: string;
+    PK: string; // PLAN#<planId>
     SK: "META";
     entity: string;
 
     planId: string;
     userId: string; // creator userId
+    creator: string; // creator username
 
     title: string;
     summary: string;

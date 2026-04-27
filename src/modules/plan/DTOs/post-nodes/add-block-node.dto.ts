@@ -1,4 +1,4 @@
-import { IsString } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 import { AbstractDto } from "../../../../shared/abstract-dto";
 import { Request } from "express";
 
@@ -23,6 +23,7 @@ export class AddBlockNodeDTO extends AbstractDto {
     summary: string;
 
     @IsString()
+    @IsOptional()
     notes: string;
 
      constructor(req: Request){

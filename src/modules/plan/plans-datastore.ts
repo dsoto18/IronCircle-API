@@ -79,6 +79,28 @@ export class PlansDatastore {
 
     }
 
+    public async publishUserPlanReference(userId: string, planId: string, createdAt: string){
+        const result = await this.dbClient?.send(new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.user(userId),
+                SK: SK.plan(createdAt, planId)
+            },
+            UpdateExpression: `
+                SET #status = :status
+            `,
+            ExpressionAttributeNames: {
+                "#status": "status"
+            },
+            ExpressionAttributeValues: {
+                ":status": "published"
+            },
+            ReturnValues: "ALL_NEW"
+        }));
+
+        return result;
+    }
+
     public async getUsersPlans(userId: string){
         const plans = await this.dbClient?.send(new QueryCommand({
             TableName: TABLE_NAME,
@@ -89,6 +111,17 @@ export class PlansDatastore {
             }
         }));
         return plans;
+    }
+
+    public async getFullPlan(planId: string){
+        const result = await this.dbClient?.send(new QueryCommand({
+            TableName: TABLE_NAME,
+            KeyConditionExpression: "PK = :pk",
+            ExpressionAttributeValues: {
+                ":pk": PK.plan(planId)
+            }
+        }));
+        return result;
     }
 
     public async getPlanMeta(planId: string){

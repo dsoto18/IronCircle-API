@@ -63,6 +63,7 @@ export class PlansComponent {
             plans: plans.map((plan: any) => ({
                 planId: plan.planId,
                 userId: plan.userId,
+                creator: plan.creator,
                 title: plan.title,
                 summary: plan.summary,
                 goal: plan.goal,
@@ -96,6 +97,7 @@ export class PlansComponent {
             planId: planId,
             status: "draft",
             entity: ENTITY.plan,
+            creator: user?.Item.username,
             createdAt: currentDate,
             updatedAt: currentDate,
             enrollmentCount: 0
@@ -107,10 +109,14 @@ export class PlansComponent {
             entity: ENTITY.userPlan,
             planId: planId,
             userId: dto.userId,
+            title: dto.title,
+            status: "draft",
             createdAt: currentDate
         }
 
-        return await this.plansDatastore.createPlanShellAndRef(planBody, userReference);
+        await this.plansDatastore.createPlanShellAndRef(planBody, userReference);
+
+        return planBody;
     }
 
     public async getUsersPlans(dto: GetUsersPlansDTO){
@@ -119,6 +125,14 @@ export class PlansComponent {
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
         }
         return await this.plansDatastore.getUsersPlans(dto.userId);
+    }
+
+    public async getFullPlan(dto: GetPlanMetaDTO){
+        const plan = await this.plansDatastore.getFullPlan(dto.planId);
+        if(!plan?.Items || plan.Items.length === 0){
+            throw new ResourceError("Plan Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+        return plan;
     }
 
     public async getPlanMeta(dto: GetPlanMetaDTO) {
@@ -181,6 +195,10 @@ export class PlansComponent {
 
         const now = new Date().toISOString();
 
+        console.log("About to update plan ref");
+        await this.plansDatastore.publishUserPlanReference(dto.userId, dto.planId, dto.createdAt);
+        console.log("Plan ref updaeted?");
+
         return await this.plansDatastore.publishPlanMeta(dto.planId, {
             status: "published",
             publishedAt: now,
@@ -192,6 +210,8 @@ export class PlansComponent {
 
     // ------------ Node Adding Shell Functions - TODO: Possibly add to own file ----------------------------------
     public async addWeekToPlan(dto: AddWeekNodeDTO) {
+        console.log("DTO:")
+        console.log(dto)
         const user = await this.userDatastore.getUserById(dto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
@@ -223,7 +243,9 @@ export class PlansComponent {
             ...dto
         }
 
-        return await this.plansDatastore.addWeekNodeToPlan(weekNodeBody);
+        await this.plansDatastore.addWeekNodeToPlan(weekNodeBody);
+
+        return weekNodeBody;
     }
 
     public async addDayToWeek(dto: AddDayNodeDTO) {
@@ -255,7 +277,8 @@ export class PlansComponent {
         const currentDate = new Date().toISOString();
         // TODO: I can move this conversion in the router/dto layer since its formatting concern
         dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
-        const dayId = 1; // For now, just defaulting to day 1, but will need to implement logic to determine this value based on existing days for the week
+        // const dayId = 1; // For now, just defaulting to day 1, but will need to implement logic to determine this value based on existing days for the week
+        const dayId = await this.getNextDayNumber(dto.planId, dto.weekNumber);
         const dayNodeBody: PlanDay = {
             PK: PK.plan(dto.planId),
             SK: SK.day(dto.weekNumber.toString(), dayId.toString()),
@@ -266,7 +289,11 @@ export class PlansComponent {
             ...dto
         }
 
-        return await this.plansDatastore.addDayNodeToWeek(dayNodeBody);
+        console.log("Saving this day");
+        console.log(dayNodeBody);
+
+        await this.plansDatastore.addDayNodeToWeek(dayNodeBody);
+        return dayNodeBody;
     }
 
     public async addBlockToDay(dto: AddBlockNodeDTO) {
@@ -309,7 +336,8 @@ export class PlansComponent {
             ...dto
         }
 
-        return await this.plansDatastore.addBlockNodeToDay(blockNodeBody);
+        await this.plansDatastore.addBlockNodeToDay(blockNodeBody);
+        return blockNodeBody;
     }
 
     public async addItemToBlock(dto: AddItemNodeDTO) {
@@ -355,7 +383,8 @@ export class PlansComponent {
             ...dto
         }
 
-        return await this.plansDatastore.addItemNodeToBlock(itemNodeBody);
+        await this.plansDatastore.addItemNodeToBlock(itemNodeBody);
+        return itemNodeBody;
     }
 
     // ------------------------- End Node Adding Shell Functions ----------------------------------
@@ -384,11 +413,16 @@ export class PlansComponent {
     public async getNextDayNumber(planId: string, weekNumber: number): Promise<number> {
         const weekKey = SK.week(weekNumber.toString()); // e.g. WEEK#01
 
+        console.log("GETNEXTDAYNUMBER")
+        console.log("weekKey: " + weekKey)
         const days = await this.plansDatastore.getSiblingNodesByPrefix<PlanDay>({
             planId,
-            skPrefix: `${weekKey}#DAY#`,
+            skPrefix: `${weekKey}DAY#`,
             entity: ENTITY.day,
         });
+
+        console.log("days:");
+        console.log(days);
 
         if (days.length === 0) return 1;
 
