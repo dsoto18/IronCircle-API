@@ -7,12 +7,13 @@ import { UpdatePostDTO } from "./DTOs/update-post.dto";
 import { GetFeedDTO } from "./DTOs/get-feed.dto";
 import { GetLikesDTO } from "./DTOs/get-likes.dto";
 import { AddLikeDTO } from "./DTOs/add-like.dto";
+import { authMiddleware, AuthRequest } from "../../middleware/authMiddleware";
 
 export class PostsRoutehandler {
     public static build(): Router {
         const router = Router();
 
-        router.post("/:userId/posts", this.createPost);
+        router.post("/posts", authMiddleware, this.createPost);
         router.get("/:userId/posts", this.getUsersPosts);
         router.get("/post/:postId", this.getPost);  // Might Leave Out
         router.patch("/post/:postId", this.updatePost); // Implement Later
@@ -36,10 +37,12 @@ export class PostsRoutehandler {
     }
 
     @Dto(CreatePostDTO)
-    public static async createPost(req: Request, res: Response, next: NextFunction){
+    public static async createPost(req: AuthRequest, res: Response, next: NextFunction){
         try {
+            const userId = req.user?.sub;
+
             res.status(200).json(await PostsComponent.build().createPost(
-                req.body.dto as CreatePostDTO
+                {...req.body.dto, userId: userId } as CreatePostDTO
             ));
         }
         catch (e) {
