@@ -16,6 +16,7 @@ export const PK = {
   username: (username: string) => `USERNAME#${username}`,
   email: (email: string) => `EMAIL#${email}`,
   post: (authorUserId: string) => `USER#${authorUserId}`, // PK for Post entity, uses UserId for Author
+
   plan: (id: string) => `PLAN#${id}`,
 };
 
@@ -27,7 +28,13 @@ export const SK = {
   follows: (userId: string) => `FOLLOWS#${userId}`,
   followedBy: (userId: string) => `FOLLOWED_BY#${userId}`,
   like: (postId: string, viewerUserId: string) => `LIKE#${postId}#USER${viewerUserId}`,
-  likedPost: (postId: string) => `LIKED_POST#${postId}`
+  likedPost: (postId: string) => `LIKED_POST#${postId}`,
+
+  plan: (createdAt: string, planId: string) => `PLAN#${createdAt}#${planId}`,
+  week: (weekId: string) => `WEEK#${weekId}`,
+  day: (weekId: string, dayId: string) => `WEEK#${weekId}DAY#${dayId}`,
+  block: (weekId: string, dayId: string, blockId: string) => `WEEK#${weekId}DAY#${dayId}BLOCK#${blockId}`,
+  item: (weekId: string, dayId: string, blockId: string, itemId: string) => `WEEK#${weekId}DAY#${dayId}BLOCK#${blockId}ITEM#${itemId}`,
 };
 
 export const ENTITY = {
@@ -38,5 +45,12 @@ export const ENTITY = {
   email: "EmailLock",
   follow: "Follow",
   like: "Like",
-  likedPost: "LikedPost"
+  likedPost: "LikedPost",
+  userPlan: "UserPlan",
+
+  // For Plan Entity, we have multiple "sub-entities" for different nodes
+  week: "PlanWeek",
+  day: "PlanDay",
+  block: "PlanBlock",
+  item: "PlanItem"
 }

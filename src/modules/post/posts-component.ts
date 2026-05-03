@@ -79,10 +79,6 @@ export class PostsComponent {
             throw new ResourceError("Author ID Does Not Match Post's Author ID.", ResourceErrorReason.BAD_REQUEST);
         }
 
-        
-        console.log("Got Post:");
-        console.log(post);
-
         const like = await this.postDatastore.getIndividualLike(dto.postAuthorId, dto.postId, dto.userId);
         if(like?.Item){
             throw new ResourceError("User Already Liked Post.", ResourceErrorReason.CONFLICT);

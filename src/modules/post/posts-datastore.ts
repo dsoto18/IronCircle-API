@@ -4,6 +4,8 @@ import { CreatePostDTO } from "./DTOs/create-post.dto";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 
+// TODO: Some fields like createdAt can be generated together and in the component layer before passing down to  here,
+// see Plans module as an example
 export class PostsDatastore {
     dbClient: DynamoDBDocumentClient | undefined;
     
@@ -59,7 +61,6 @@ export class PostsDatastore {
             const result = await this.dbClient?.send(new PutCommand(entry))
             return result;
         } catch(e) {
-            console.log(e)
             throw new ResourceError("Create Post Put Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
         }
     }
