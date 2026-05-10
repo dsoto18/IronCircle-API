@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
 import { config } from "../config";
+import { ResourceError, ResourceErrorReason } from "../shared/error";
 
 const client = jwksClient({
   jwksUri: `https://cognito-idp.${config.region}.amazonaws.com/${config.userPooolId}/.well-known/jwks.json`
@@ -30,7 +31,7 @@ export function authMiddleware(
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ message: "No token provided" });
+    throw new ResourceError("No token provided", ResourceErrorReason.INVALID_ACCESS);
   }
 
   jwt.verify(

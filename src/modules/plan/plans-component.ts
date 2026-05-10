@@ -195,9 +195,7 @@ export class PlansComponent {
 
         const now = new Date().toISOString();
 
-        console.log("About to update plan ref");
         await this.plansDatastore.publishUserPlanReference(dto.userId, dto.planId, dto.createdAt);
-        console.log("Plan ref updaeted?");
 
         return await this.plansDatastore.publishPlanMeta(dto.planId, {
             status: "published",
@@ -210,8 +208,6 @@ export class PlansComponent {
 
     // ------------ Node Adding Shell Functions - TODO: Possibly add to own file ----------------------------------
     public async addWeekToPlan(dto: AddWeekNodeDTO) {
-        console.log("DTO:")
-        console.log(dto)
         const user = await this.userDatastore.getUserById(dto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
@@ -288,9 +284,6 @@ export class PlansComponent {
             updatedAt: currentDate,
             ...dto
         }
-
-        console.log("Saving this day");
-        console.log(dayNodeBody);
 
         await this.plansDatastore.addDayNodeToWeek(dayNodeBody);
         return dayNodeBody;
@@ -413,16 +406,11 @@ export class PlansComponent {
     public async getNextDayNumber(planId: string, weekNumber: number): Promise<number> {
         const weekKey = SK.week(weekNumber.toString()); // e.g. WEEK#01
 
-        console.log("GETNEXTDAYNUMBER")
-        console.log("weekKey: " + weekKey)
         const days = await this.plansDatastore.getSiblingNodesByPrefix<PlanDay>({
             planId,
             skPrefix: `${weekKey}DAY#`,
             entity: ENTITY.day,
         });
-
-        console.log("days:");
-        console.log(days);
 
         if (days.length === 0) return 1;
 

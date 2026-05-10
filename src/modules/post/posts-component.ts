@@ -22,6 +22,7 @@ export class PostsComponent {
     }
 
     public async createPost(postBody: CreatePostDTO){
+        console.log("Create Post Called with DTO:", postBody);
         // double check user exists
         const user = await this.userDatastore.getUserById(postBody.userId);
         if(!user?.Item){
@@ -122,6 +123,7 @@ export class PostsComponent {
 
     // TODO: Move into separate FEED component?
     public async getFeed(getFeedDto: GetFeedDTO){
+        console.log("Get Feed Called with DTO:", getFeedDto);
         const user = await this.userDatastore.getUserById(getFeedDto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);

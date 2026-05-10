@@ -27,11 +27,11 @@ export class PostsRoutehandler {
         // ----------------------------------------------------------------
 
         router.get("/post/:postId/likes", this.getLikes);
-        router.post("/likes/:postId", this.addLike);
-        router.delete("/likes/:postId", this.removeLike);
+        router.post("/likes/:postId", authMiddleware, this.addLike);
+        router.delete("/likes/:postId", authMiddleware, this.removeLike);
 
         // FEED
-        router.get("/feed/:userId", this.getFeed);
+        router.get("/feed", authMiddleware, this.getFeed);
 
         return router;
     }
@@ -110,10 +110,11 @@ export class PostsRoutehandler {
     }
 
     @Dto(AddLikeDTO)
-    public static async addLike(req: Request, res: Response, next: NextFunction){
+    public static async addLike(req: AuthRequest, res: Response, next: NextFunction){
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PostsComponent.build().addLike(
-                req.body.dto as AddLikeDTO
+                {...req.body.dto, userId} as AddLikeDTO
             ))
         } catch (e) {
             next(e);
@@ -121,10 +122,11 @@ export class PostsRoutehandler {
     }
 
     @Dto(AddLikeDTO) // same content, so reusing for now
-    public static async removeLike(req: Request, res: Response, next: NextFunction){
+    public static async removeLike(req: AuthRequest, res: Response, next: NextFunction){
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PostsComponent.build().removeLike(
-                req.body.dto as AddLikeDTO
+                {...req.body.dto, userId} as AddLikeDTO
             ))
         } catch(e) {
             next(e);
@@ -133,10 +135,11 @@ export class PostsRoutehandler {
 
     // USER FEED
     @Dto(GetFeedDTO)
-    public static async getFeed(req: Request, res: Response, next: NextFunction){
+    public static async getFeed(req: AuthRequest, res: Response, next: NextFunction){
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PostsComponent.build().getFeed(
-                req.body.dto as GetFeedDTO
+                {...req.body.dto, userId} as GetFeedDTO
             ))
         } catch(e) {
             next(e);
