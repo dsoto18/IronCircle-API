@@ -107,7 +107,7 @@ export class UserDatastore {
                 ":pk": "USERNAME",
                 ":q": text.toLowerCase()
             },
-            ProjectionExpression: "userId, username, firstName, LastName, profilePictureUrl",
+            ProjectionExpression: "userId, username, firstName, lastName, profilePictureUrl",
             Limit: 5
         });
 
