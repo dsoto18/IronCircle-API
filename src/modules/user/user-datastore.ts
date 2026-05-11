@@ -105,7 +105,10 @@ export class UserDatastore {
                 ":pk": "USER#",
                 ":q": text
             }
-        })
+        });
+
+        const result = await this.dbClient?.send(query);
+        return result;
     }
 
     public async getUserEmailLock(email: string){
