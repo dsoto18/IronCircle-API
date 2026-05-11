@@ -7,7 +7,7 @@ export class AddWeekNodeDTO extends AbstractDto {
     @IsString()
     planId: string;
 
-    @IsString()
+    // @IsString()
     userId: string;
 
     @IsString()
@@ -24,7 +24,7 @@ export class AddWeekNodeDTO extends AbstractDto {
         super();
 
         this.planId = req.params.planId as string;
-        this.userId = req.body.userId as string;
+        this.userId = ""; // Placeholder, will be overwritten by route handler with authenticated user ID
         this.title = req.body.title;
         this.summary = req.body.summary;
         this.notes = req.body.notes;

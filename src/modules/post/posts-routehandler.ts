@@ -14,7 +14,7 @@ export class PostsRoutehandler {
         const router = Router();
 
         router.post("/posts", authMiddleware, this.createPost);
-        router.get("/:userId/posts", this.getUsersPosts);
+        router.get("/:userId/posts", this.getUsersPosts); // TODO: Add auth, but route not currently used by client
         router.get("/post/:postId", this.getPost);  // Might Leave Out
         router.patch("/post/:postId", this.updatePost); // Implement Later
         router.delete("/post/:postId", this.deletePost); // Implement Later

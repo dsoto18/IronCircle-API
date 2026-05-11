@@ -26,7 +26,6 @@ export enum PLAN_TYPE {
 
 export class CreatePlanDTO extends AbstractDto {
     
-    @IsString()
     userId: string;
 
     @IsString()
@@ -68,7 +67,7 @@ export class CreatePlanDTO extends AbstractDto {
     constructor(req: Request){
         super();
 
-        this.userId = req.params.userId as string;
+        this.userId = ""; // Placeholder, will be overwritten by route handler with authenticated user ID
         this.title = req.body.title;
         this.summary = req.body.summary;
         this.description = req.body.description;

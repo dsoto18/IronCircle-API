@@ -80,6 +80,7 @@ export class PlansComponent {
     }
 
     public async createPlanShell(dto: CreatePlanDTO) {
+        console.log("Creating plan shell with DTO:", dto);
         const user = await this.userDatastore.getUserById(dto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
@@ -120,6 +121,10 @@ export class PlansComponent {
     }
 
     public async getUsersPlans(dto: GetUsersPlansDTO){
+        // might as well do this check since we have an id from url params, and the token
+        if(dto.tokenUser !== dto.userId){
+            throw new ResourceError("User ID In Token Does Not Match User ID In Request.", ResourceErrorReason.FORBIDDEN);
+        }
         const user = await this.userDatastore.getUserById(dto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
