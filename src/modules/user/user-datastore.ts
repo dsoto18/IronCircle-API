@@ -43,7 +43,6 @@ export class UserDatastore {
                 lastName: insert.lastName,
                 username: insert.username,
                 email: insert.email,
-                password: "password123",
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 isVerified: false,

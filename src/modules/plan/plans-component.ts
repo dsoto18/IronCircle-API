@@ -80,7 +80,6 @@ export class PlansComponent {
     }
 
     public async createPlanShell(dto: CreatePlanDTO) {
-        console.log("Creating plan shell with DTO:", dto);
         const user = await this.userDatastore.getUserById(dto.userId);
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);

@@ -17,10 +17,6 @@ export class CreateUserDTO extends AbstractDto {
     // @IsEmail()
     email: string
 
-    // @IsString()
-    // password: string
-
-
     userId: string; // temporary, should fix this but it gets set in the routehandler from middleware
 
     constructor(req: Request) {
@@ -30,7 +26,6 @@ export class CreateUserDTO extends AbstractDto {
         this.username = req.body.username;
         this.email = ""; // temporary, should fix this but it gets set in the routehandler from middleware
         this.userId = "";
-        // this.password = req.body.password; // REFACTOR - should be storing password in Cognito only
 
     }
 }

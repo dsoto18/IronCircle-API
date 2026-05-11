@@ -42,7 +42,6 @@ export class UserRouteHandler {
         try {
             const email = req.user!.email;
             const userId = req.user!.sub;
-            // console.log("Email from auth middleware:", email);
             res.status(200).json(await UserComponent.build().createUser(
                 {...req.body.dto, email, userId } as CreateUserDTO
             ))
