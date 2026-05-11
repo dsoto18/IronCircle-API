@@ -165,6 +165,8 @@ export async function seed(docClient: any, tableName: string) {
           { AttributeName: "SK", AttributeType: "S" },
           { AttributeName: "GSI1PK", AttributeType: "S" },
           { AttributeName: "GSI1SK", AttributeType: "S" },
+          { AttributeName: "UsernameIndexPK", AttributeType: "S" },
+          { AttributeName: "UsernameIndexSK", AttributeType: "S" },
         ],
         GlobalSecondaryIndexes: [
           {
@@ -172,6 +174,16 @@ export async function seed(docClient: any, tableName: string) {
             KeySchema: [
               { AttributeName: "GSI1PK", KeyType: "HASH" },
               { AttributeName: "GSI1SK", KeyType: "RANGE" },
+            ],
+            Projection: {
+              ProjectionType: "ALL",
+            },
+          },
+          {
+            IndexName: "UsernameIndex",
+            KeySchema: [
+              { AttributeName: "UsernameIndexPK", KeyType: "HASH" },
+              { AttributeName: "UsernameIndexSK", KeyType: "RANGE" },
             ],
             Projection: {
               ProjectionType: "ALL",

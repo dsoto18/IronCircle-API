@@ -37,6 +37,8 @@ export class UserDatastore {
             Item: {
                 PK: partitionKey,
                 SK: sortKey,
+                UsernameIndexPK: "USERNAME", // static value to allow for GSI on username
+                UsernameIndexSK: insert.username, // username as sort key for GSI to allow querying by username
                 userId: insert.userId,
                 entity: ENTITY.user,
                 firstName: insert.firstName,
@@ -47,7 +49,7 @@ export class UserDatastore {
                 updatedAt: new Date().toISOString(),
                 isVerified: false,
                 bio: "",
-                profilePictureUrl: ""
+                profilePictureUrl: "",
             },
             ConditionExpression: "attribute_not_exists(PK)"
         };
@@ -102,9 +104,11 @@ export class UserDatastore {
             IndexName: "UsernameIndex",
             KeyConditionExpression: "UsernameIndexPK = :pk AND begins_with(UsernameIndexSK, :q)",
             ExpressionAttributeValues: {
-                ":pk": "USER#",
-                ":q": text
-            }
+                ":pk": "USERNAME",
+                ":q": text.toLowerCase()
+            },
+            ProjectionExpression: "userId, username, firstName, LastName, profilePictureUrl",
+            Limit: 5
         });
 
         const result = await this.dbClient?.send(query);
