@@ -21,8 +21,8 @@ export class UserDatastore {
 
     public async createUser(insert: CreateUserDTO) {
         // generate PK and SK with dynamo-keys.ts helper functions
-        const userUuid = generateUuid();
-        const partitionKey = PK.user(userUuid); 
+        // const userUuid = generateUuid();  // legacy - should be using sub from auth middleware which is set in the routehandler, but keeping this here for now just in case
+        const partitionKey = PK.user(insert.userId); 
         const sortKey = SK.profile;
 
         // generate PK and SK values for email + username records
@@ -37,12 +37,12 @@ export class UserDatastore {
             Item: {
                 PK: partitionKey,
                 SK: sortKey,
+                userId: insert.userId,
                 entity: ENTITY.user,
                 firstName: insert.firstName,
                 lastName: insert.lastName,
                 username: insert.username,
                 email: insert.email,
-                password: "password123",
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 isVerified: false,
@@ -58,7 +58,7 @@ export class UserDatastore {
                 PK: usernamePK,
                 SK: usernameSK,
                 entity: ENTITY.username,
-                userId: userUuid
+                userId: insert.userId
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }
@@ -69,7 +69,7 @@ export class UserDatastore {
                 PK: emailPK,
                 SK: emailSK,
                 entity: ENTITY.email,
-                userId: userUuid
+                userId: insert.userId
             },
             ConditionExpression: "attribute_not_exists(PK)"
         }

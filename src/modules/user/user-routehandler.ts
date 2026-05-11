@@ -6,14 +6,18 @@ import { GetUserDTO } from "./DTOs/get-user.dto";
 import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { GetUserFollowingDTO } from "./DTOs/get-user-following.dto";
+import { authMiddleware, AuthRequest } from "../../middleware/authMiddleware";
 
 export class UserRouteHandler {
     public static build(): Router {
         const router = Router();
 
-        router.post("/users", this.register);
-        router.get("/users", this.getUsers);
-        router.get("/users/:user", this.getUser);
+        // auth route
+        router.get("/users/me", authMiddleware, this.getMe);
+
+        router.post("/users", authMiddleware, this.register); // onboarding route, rename functions
+        router.get("/users", this.getUsers); // TODO
+        router.get("/users/:user", this.getUser); // Public GET User route
         router.patch("/users/:username", this.updateUser);
         router.post("/:userId/followers/:followerId", this.addFollower);
         router.get("/users/:userId/followers", this.getUsersFollowers);
@@ -22,11 +26,24 @@ export class UserRouteHandler {
         return router;
     }
 
-    @Dto(CreateUserDTO)
-    public static async register(req: Request, res: Response, next: NextFunction){
+    public static async getMe(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            const userId = req.user!.sub;
+            const result = await UserComponent.build().getMe(userId);
+
+            res.status(200).json(result);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    @Dto(CreateUserDTO)
+    public static async register(req: AuthRequest, res: Response, next: NextFunction){
+        try {
+            const email = req.user!.email;
+            const userId = req.user!.sub;
             res.status(200).json(await UserComponent.build().createUser(
-                req.body.dto as CreateUserDTO
+                {...req.body.dto, email, userId } as CreateUserDTO
             ))
         }
         catch (e) {

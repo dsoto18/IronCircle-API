@@ -4,7 +4,6 @@ import { IsString } from "class-validator";
 
 export class AddLikeDTO extends AbstractDto {
 
-    @IsString()
     userId: string;
 
     @IsString()
@@ -20,7 +19,7 @@ export class AddLikeDTO extends AbstractDto {
         super();
 
         this.postId = req.params.postId as string;
-        this.userId = req.body.userId;
+        this.userId = ""; // Placeholder, will be overwritten by route handler with authenticated user ID
         this.postAuthorId = req.body.author;
         this.postCreatedAt = req.body.createdAt;
     }

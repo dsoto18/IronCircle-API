@@ -16,6 +16,21 @@ export class UserComponent {
         return new UserComponent(userDatastore);
     }
 
+    public async getMe(userId: string) {
+        const user = await this.userDatastore.getUserById(userId);
+        if (!user?.Item) {
+            return {
+                needsOnboarding: true,
+                user: null,
+            };
+        }
+
+        return {
+            needsOnboarding: false,
+            user: user.Item,
+        };
+    }
+
     public async createUser(dto: CreateUserDTO) {
         // normalize username
         dto.username = dto.username.toLowerCase();
@@ -30,7 +45,8 @@ export class UserComponent {
             throw new ResourceError("Email already in use.", ResourceErrorReason.CONFLICT)
         }
         
-        // hash password
+        // normalize username a little:
+        dto.username = dto.username.replace(/\s+/g, ''); 
 
         return await this.userDatastore.createUser(dto);
     }

@@ -13,21 +13,19 @@ export class CreateUserDTO extends AbstractDto {
     @IsString()
     username: string;
 
-    @IsString()
-    @IsEmail()
+    // @IsString()
+    // @IsEmail()
     email: string
 
-    @IsString()
-    password: string
-
+    userId: string; // temporary, should fix this but it gets set in the routehandler from middleware
 
     constructor(req: Request) {
         super();
         this.firstName = req.body.firstName;
         this.lastName = req.body.lastName;
         this.username = req.body.username;
-        this.email = req.body.email;
-        this.password = req.body.password;
+        this.email = ""; // temporary, should fix this but it gets set in the routehandler from middleware
+        this.userId = "";
 
     }
 }

@@ -11,6 +11,6 @@ export class GetFeedDTO extends AbstractDto {
     constructor(req: Request){
         super();
 
-        this.userId = req.params.userId as string;
+        this.userId = ""; // Placeholder, will be overwritten by route handler with authenticated user ID
     }
 }

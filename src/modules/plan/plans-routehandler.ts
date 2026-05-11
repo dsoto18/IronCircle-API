@@ -13,6 +13,7 @@ import { UpdateWeekNodeDTO } from "./DTOs/patch-nodes/update-week-node.dto";
 import { GetBrowsablePlansDTO } from "./DTOs/plan-meta/browse-plans.dto";
 import { PublishPlanDTO } from "./DTOs/publish.dto";
 import { GetFullPlanDTO } from "./DTOs/get-full-plan.dto";
+import { authMiddleware, AuthRequest } from "../../middleware/authMiddleware";
 
 export class PlansRoutehandler {
     public static build(): Router {
@@ -22,30 +23,30 @@ export class PlansRoutehandler {
         router.get("/plans", this.browsePlans);
 
         // -------------- Meta Plan Routes --------------------
-        router.post("/:userId/plans", this.createPlanMeta);
-        router.get("/:userId/plans", this.getUsersPlans);
-        router.get("/plan/:planId", this.getPlanMeta);
+        router.post("/plans", authMiddleware, this.createPlanMeta);
+        router.get("/:userId/plans", authMiddleware, this.getUsersPlans);
+        router.get("/plan/:planId", this.getPlanMeta); // Stays public for now, but might want to add auth later if we want to restrict access to unpublished plans
         router.patch("/:userId/plan/:planId", this.updatePlanMeta);
         router.delete("/plan/:planId", this.deletePlan); // TODO: Implement Later
         // ----------------------------------------------------
 
         // POST Nodes
-        router.post("/plans/:planId/weeks", this.addWeekToPlan);
-        router.post("/plans/:planId/weeks/:weekNumber/days", this.addDayToWeek);
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", this.addBlockToDay);
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", this.addItemToBlock);
+        router.post("/plans/:planId/weeks", authMiddleware, this.addWeekToPlan);
+        router.post("/plans/:planId/weeks/:weekNumber/days", authMiddleware, this.addDayToWeek);
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", this.addBlockToDay); // TODO
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", this.addItemToBlock); // TODO
 
         // PATCH Nodes
-        router.patch("/plans/:planId/weeks/:weekNumber", this.updateWeek);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber", this.updateDay);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber", this.updateBlock);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items/:itemId", this.updateItem);
+        router.patch("/plans/:planId/weeks/:weekNumber", this.updateWeek); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber", this.updateDay); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber", this.updateBlock); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items/:itemId", this.updateItem); // Implementing for V2
 
         // Get Full Plan
-        router.get("/plan/:planId/full", this.getFullPlan);
+        router.get("/plan/:planId/full", this.getFullPlan); // TODO: Add auth in the future? Client passes token but not used.
 
         // Publish Plan
-        router.post("/plan/:planId/publish", this.publishPlan);
+        router.post("/plan/:planId/publish", authMiddleware, this.publishPlan);
         return router;
     }
 
@@ -61,10 +62,11 @@ export class PlansRoutehandler {
     }
 
     @Dto(CreatePlanDTO)
-    public static async createPlanMeta(req: Request, res: Response, next: NextFunction) {
+    public static async createPlanMeta(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PlansComponent.build().createPlanShell(
-                req.body.dto as CreatePlanDTO
+                {...req.body.dto, userId} as CreatePlanDTO
             ));
         } catch (e) {
             next(e);
@@ -72,10 +74,11 @@ export class PlansRoutehandler {
     }
 
     @Dto(GetUsersPlansDTO)
-    public static async getUsersPlans(req: Request, res: Response, next: NextFunction) {
+    public static async getUsersPlans(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            const tokenUser = req.user?.sub;
             res.status(200).json(await PlansComponent.build().getUsersPlans(
-                req.body.dto as GetUsersPlansDTO
+                {...req.body.dto, tokenUser} as GetUsersPlansDTO
             ));
         } catch(e) {
             next(e);
@@ -108,10 +111,11 @@ export class PlansRoutehandler {
     }
 
     @Dto(AddWeekNodeDTO)
-    public static async addWeekToPlan(req: Request, res: Response, next: NextFunction) {
+    public static async addWeekToPlan(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PlansComponent.build().addWeekToPlan(
-                req.body.dto as AddWeekNodeDTO
+                {...req.body.dto, userId} as AddWeekNodeDTO
             ));
         } catch (e) {
             next(e);
@@ -119,11 +123,12 @@ export class PlansRoutehandler {
     }
 
     @Dto(AddDayNodeDTO)
-    public static async addDayToWeek(req: Request, res: Response, next: NextFunction) {
+    public static async addDayToWeek(req: AuthRequest, res: Response, next: NextFunction) {
          try {
-             res.status(200).json(await PlansComponent.build().addDayToWeek(
-                 req.body.dto as AddDayNodeDTO
-             ));
+            const userId = req.user?.sub;
+            res.status(200).json(await PlansComponent.build().addDayToWeek(
+                {...req.body.dto, userId} as AddDayNodeDTO
+            ));
          } catch (e) {
              next(e);
          }
@@ -183,10 +188,11 @@ export class PlansRoutehandler {
     }
 
     @Dto(PublishPlanDTO)
-    public static async publishPlan(req: Request, res: Response, next: NextFunction) {
+    public static async publishPlan(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            const userId = req.user?.sub;
             res.status(200).json(await PlansComponent.build().publishPlan(
-                req.body.dto as PublishPlanDTO
+                {...req.body.dto, userId} as PublishPlanDTO
             ));
         } catch (e) {
             next(e);

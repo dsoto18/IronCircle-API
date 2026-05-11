@@ -19,7 +19,6 @@ export enum VISIBILITY {
 
 export class CreatePostDTO extends AbstractDto {
 
-    @IsString()
     userId: string;
 
     @IsDefined()
@@ -50,7 +49,7 @@ export class CreatePostDTO extends AbstractDto {
     constructor(req: Request){
         super();
 
-        this.userId= req.params.userId as string;
+        this.userId = ''; // temporary, should fix this but it gets set in the routehandler from middleware
         this.type = req.body.type;
         this.distance = req.body.distance;
         this.calories = req.body.calories;

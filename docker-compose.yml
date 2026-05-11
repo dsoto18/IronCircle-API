@@ -15,6 +15,7 @@ services:
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
       TABLE_NAME: dev-bluepnt-app-table
+      COGNITO_USER_POOL_ID: us-east-1_4zqOeAlcz
     depends_on:
       - dynamodb
 

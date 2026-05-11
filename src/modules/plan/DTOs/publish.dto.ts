@@ -7,7 +7,7 @@ export class PublishPlanDTO extends AbstractDto {
     @IsString()
     planId: string;
 
-    @IsString()
+    // @IsString()
     userId: string;
 
     @IsString()
@@ -17,7 +17,7 @@ export class PublishPlanDTO extends AbstractDto {
         super();
 
         this.planId = req.params.planId as string;
-        this.userId = req.body.userId;
+        this.userId = ""; // Placeholder, will be overwritten by route handler with authenticated user ID
         this.createdAt = req.body.createdAt;
     }
 }
