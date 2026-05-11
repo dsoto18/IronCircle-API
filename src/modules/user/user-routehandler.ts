@@ -7,6 +7,7 @@ import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { GetUserFollowingDTO } from "./DTOs/get-user-following.dto";
 import { authMiddleware, AuthRequest } from "../../middleware/authMiddleware";
+import { SearchUsersDTO } from "./DTOs/search-users.dto";
 
 export class UserRouteHandler {
     public static build(): Router {
@@ -16,12 +17,13 @@ export class UserRouteHandler {
         router.get("/users/me", authMiddleware, this.getMe);
 
         router.post("/users", authMiddleware, this.register); // onboarding route, rename functions
-        router.get("/users", this.getUsers); // TODO
+        router.get("/users", this.getUsers); // SEARCH USERS
         router.get("/users/:user", this.getUser); // Public GET User route
         router.patch("/users/:username", this.updateUser);
         router.post("/:userId/followers/:followerId", this.addFollower);
         router.get("/users/:userId/followers", this.getUsersFollowers);
         router.get("/users/:userId/following", this.getUsersFollowing);
+        router.delete("/:userId/followers/:followerId", this.removeFollower);
 
         return router;
     }
@@ -53,9 +55,12 @@ export class UserRouteHandler {
     /**
      * Search Users Route
      */
+    @Dto(SearchUsersDTO)
     public static async getUsers(req: Request, res: Response, next: NextFunction) {
         try {
-            res.status(200).json(await UserComponent.build().getUsers());
+            res.status(200).json(await UserComponent.build().getUsers(
+                req.body.dto as SearchUsersDTO
+            ));
         } catch (e) {
             next(e);
         } 
@@ -109,6 +114,17 @@ export class UserRouteHandler {
         try {
             res.status(200).json(await UserComponent.build().getAccountsUserFollows(
                 req.body.dto.userId
+            ));
+        } catch(e) {
+            next(e);
+        }
+    }
+
+    @Dto(FollowDTO)
+    public static async removeFollower(req: Request, res: Response, next: NextFunction){
+        try {
+            res.status(200).json(await UserComponent.build().removeFollower(
+                req.body.dto as FollowDTO
             ));
         } catch(e) {
             next(e);

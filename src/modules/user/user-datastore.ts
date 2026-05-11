@@ -96,8 +96,16 @@ export class UserDatastore {
         return user;
     }
 
-    public async getUsers(){
-
+    public async getUsers(text: string){
+        const query = new QueryCommand({
+            TableName: TABLE_NAME,
+            IndexName: "UsernameIndex",
+            KeyConditionExpression: "UsernameIndexPK = :pk AND begins_with(UsernameIndexSK, :q)",
+            ExpressionAttributeValues: {
+                ":pk": "USER#",
+                ":q": text
+            }
+        })
     }
 
     public async getUserEmailLock(email: string){
@@ -209,5 +217,38 @@ export class UserDatastore {
 
         const result = await this.dbClient?.send(command);
         return result;
+    }
+
+    public async removeFollow(userId: string, followerId: string){
+        const deleteFollow = {
+            Delete: {
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(followerId),
+                    SK: SK.follows(userId),
+                },
+                ConditionExpression: "attribute_exists(SK)"
+            }
+        };
+
+        const deleteFollowedBy = {
+            Delete: {
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(userId),
+                    SK: SK.followedBy(followerId)
+                },
+                ConditionExpression: "attribute_exists(SK)"
+            }
+        };
+
+        const transaction = [ deleteFollow, deleteFollowedBy ];
+
+        try {
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
+            return result;
+        } catch (e) {
+            throw new ResourceError("Remove Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
     }
 }

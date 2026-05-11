@@ -4,6 +4,8 @@ import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserDTO } from "./DTOs/get-user.dto";
 import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { UserDatastore } from "./user-datastore";
+import { isValidUUID } from "../../shared/is-uuid";
+import { SearchUsersDTO } from "./DTOs/search-users.dto";
 
 export class UserComponent {
 
@@ -33,7 +35,8 @@ export class UserComponent {
 
     public async createUser(dto: CreateUserDTO) {
         // normalize username
-        dto.username = dto.username.toLowerCase();
+        dto.username = dto.username.toLowerCase(); // lowercase
+        dto.username = dto.username.replace(/\s+/g, ''); // remove whitespace
 
         // check if username or email already exist
         const usernameExists = await this.userDatastore.getUsernameLock(dto.username);
@@ -53,7 +56,16 @@ export class UserComponent {
 
     public async getUser(dto: GetUserDTO){
         const identifier = dto.userIdentifier;
-        // figure out if identifier is email or username, and perform correct query
+        // is it the userId, if so just query
+        if(isValidUUID(identifier)){
+            const user = await this.userDatastore.getUserById(identifier);
+            if(!user?.Item){
+                throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND)
+            }
+            return user;
+        }
+
+        // Continue and figure out if identifier is email or username, and perform correct query
         const isEmail = identifier.includes('@');
         const lock = isEmail ? await this.userDatastore.getUserEmailLock(identifier) : await this.userDatastore.getUsernameLock(identifier);
 
@@ -74,8 +86,11 @@ export class UserComponent {
         return user;
     }
 
-    public async getUsers() { // Might not need
-        return await this.userDatastore.getUsers();
+    public async getUsers(query: SearchUsersDTO) {
+        if(query.text && query.text.length < 3){
+            throw new ResourceError("Search Text Must Be At Least 3 Characters Long.", ResourceErrorReason.BAD_REQUEST);
+        }
+        return await this.userDatastore.getUsers(query.text);
     }
 
     public async addFollower(followBody: FollowDTO){
@@ -119,5 +134,31 @@ export class UserComponent {
         }
 
         return await this.userDatastore.getProfilesUserFollows(userId);
+    }
+
+    public async removeFollower(followBody: FollowDTO){
+        if(followBody.userId === followBody.following){
+            throw new ResourceError("User cannot unfollow themself.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        // Get First User
+        const user = await this.userDatastore.getUserById(followBody.userId);
+        if(!user?.Item){
+            throw new ResourceError("User requesting to unfollow, does not exist.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        // Check if user to unfollow exists
+        const follow = await this.userDatastore.getUserById(followBody.following);
+        if(!follow?.Item){
+            throw new ResourceError("User to unfollow, does not exist.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        // check if this follow relationship exists
+        const check = await this.userDatastore.followExists(followBody.following, followBody.userId);
+        if(!check?.Item){
+            throw new ResourceError("Follow relationship does not exist.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        return await this.userDatastore.removeFollow(followBody.userId, followBody.following);
     }
 }
