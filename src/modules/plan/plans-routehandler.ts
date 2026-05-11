@@ -25,7 +25,7 @@ export class PlansRoutehandler {
         // -------------- Meta Plan Routes --------------------
         router.post("/plans", authMiddleware, this.createPlanMeta);
         router.get("/:userId/plans", authMiddleware, this.getUsersPlans);
-        router.get("/plan/:planId", this.getPlanMeta);
+        router.get("/plan/:planId", this.getPlanMeta); // Stays public for now, but might want to add auth later if we want to restrict access to unpublished plans
         router.patch("/:userId/plan/:planId", this.updatePlanMeta);
         router.delete("/plan/:planId", this.deletePlan); // TODO: Implement Later
         // ----------------------------------------------------
@@ -33,14 +33,14 @@ export class PlansRoutehandler {
         // POST Nodes
         router.post("/plans/:planId/weeks", authMiddleware, this.addWeekToPlan);
         router.post("/plans/:planId/weeks/:weekNumber/days", authMiddleware, this.addDayToWeek);
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", this.addBlockToDay);
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", this.addItemToBlock);
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", this.addBlockToDay); // TODO
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", this.addItemToBlock); // TODO
 
         // PATCH Nodes
-        router.patch("/plans/:planId/weeks/:weekNumber", this.updateWeek);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber", this.updateDay);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber", this.updateBlock);
-        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items/:itemId", this.updateItem);
+        router.patch("/plans/:planId/weeks/:weekNumber", this.updateWeek); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber", this.updateDay); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber", this.updateBlock); // Implementing for V2
+        router.patch("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items/:itemId", this.updateItem); // Implementing for V2
 
         // Get Full Plan
         router.get("/plan/:planId/full", this.getFullPlan); // TODO: Add auth in the future? Client passes token but not used.

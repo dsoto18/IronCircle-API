@@ -16,8 +16,8 @@ export class UserRouteHandler {
         router.get("/users/me", authMiddleware, this.getMe);
 
         router.post("/users", authMiddleware, this.register); // onboarding route, rename functions
-        router.get("/users", this.getUsers);
-        router.get("/users/:user", this.getUser);
+        router.get("/users", this.getUsers); // TODO
+        router.get("/users/:user", this.getUser); // Public GET User route
         router.patch("/users/:username", this.updateUser);
         router.post("/:userId/followers/:followerId", this.addFollower);
         router.get("/users/:userId/followers", this.getUsersFollowers);
