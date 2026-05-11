@@ -87,7 +87,7 @@ export class UserComponent {
     }
 
     public async getUsers(query: SearchUsersDTO) {
-        if(query.text && query.text.length < 3){
+        if(!query.text || query.text.trim().length < 3){
             throw new ResourceError("Search Text Must Be At Least 3 Characters Long.", ResourceErrorReason.BAD_REQUEST);
         }
         return await this.userDatastore.getUsers(query.text);
