@@ -2,7 +2,7 @@ import { DynamoClient } from "../../services/dynamodb-client";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { UpdateUserDTO } from "./DTOs/update-user.dto";
 
 export class UserDatastore {
@@ -99,8 +99,56 @@ export class UserDatastore {
         return user;
     }
 
-    public async updateUser(body: UpdateUserDTO){
-        
+    public async updateUser(dto: UpdateUserDTO) {
+        const updateFields: string[] = [];
+        const expressionValues: Record<string, any> = {};
+        const expressionNames: Record<string, string> = {};
+
+        if (dto.firstName !== undefined) {
+            updateFields.push("#firstName = :firstName");
+            expressionNames["#firstName"] = "firstName";
+            expressionValues[":firstName"] = dto.firstName;
+        }
+
+        if (dto.lastName !== undefined) {
+            updateFields.push("#lastName = :lastName");
+            expressionNames["#lastName"] = "lastName";
+            expressionValues[":lastName"] = dto.lastName;
+        }
+
+        if (dto.bio !== undefined) {
+            updateFields.push("#bio = :bio");
+            expressionNames["#bio"] = "bio";
+            expressionValues[":bio"] = dto.bio;
+        }
+
+        // always update timestamp
+        updateFields.push("#updatedAt = :updatedAt");
+        expressionNames["#updatedAt"] = "updatedAt";
+        expressionValues[":updatedAt"] = new Date().toISOString();
+
+        if (updateFields.length === 0) {
+            throw new ResourceError(
+                "No valid fields provided for update.",
+                ResourceErrorReason.BAD_REQUEST
+            );
+        }
+
+        const command = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.user(dto.userId),
+                SK: SK.profile
+            },
+            UpdateExpression: `SET ${updateFields.join(", ")}`,
+            ExpressionAttributeNames: expressionNames,
+            ExpressionAttributeValues: expressionValues,
+            ConditionExpression: "attribute_exists(PK)",
+            ReturnValues: "ALL_NEW"
+        });
+
+        const result = await this.dbClient?.send(command);
+        return result;
     }
 
     public async getUsers(text: string){
