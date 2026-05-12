@@ -88,13 +88,14 @@ export class UserComponent {
     }
 
     public async updateUser(dto: UpdateUserDTO){
+        console.log("COMPONENT FUNCTION")
         // check user exists
-        const user = await this.userDatastore.getUserById(dto.userId);
-        if(!user?.Item){
+        const usernameLock = await this.userDatastore.getUsernameLock(dto.username);
+        if(!usernameLock?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
         }
 
-        if(dto.userId !== user.Item.userId){
+        if(dto.userId !== usernameLock.Item.userId){
             throw new ResourceError("Authenticated user does not match user to update.", ResourceErrorReason.FORBIDDEN);
         }
 
@@ -102,6 +103,7 @@ export class UserComponent {
             throw new ResourceError("Bio Must Be 30 Characters Or Less.", ResourceErrorReason.BAD_REQUEST);
         }
 
+        console.log("CHECKS PASSED, UPDATING USER")
         return await this.userDatastore.updateUser(dto);
     }
 

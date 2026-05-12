@@ -5,6 +5,9 @@ import { AbstractDto } from "../../../shared/abstract-dto";
 export class UpdateUserDTO extends AbstractDto {
 
     @IsString()
+    username: string; // required to identify the user, but not required to update. Should we make this optional and just use the userId from the token?
+
+    @IsString()
     @IsOptional()
     firstName?: string;
 
@@ -20,6 +23,7 @@ export class UpdateUserDTO extends AbstractDto {
 
     constructor(req: Request) {
         super();
+        this.username = req.params.username as string; // required to identify the user, but not required to update. Should we make this optional and just use the userId from the token?
         this.firstName = req.body.firstName;
         this.lastName = req.body.lastName;
         this.bio = req.body.bio;
