@@ -6,6 +6,7 @@ import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { UserDatastore } from "./user-datastore";
 import { isValidUUID } from "../../shared/is-uuid";
 import { SearchUsersDTO } from "./DTOs/search-users.dto";
+import { UpdateUserDTO } from "./DTOs/update-user.dto";
 
 export class UserComponent {
 
@@ -86,6 +87,24 @@ export class UserComponent {
         return user;
     }
 
+    public async updateUser(dto: UpdateUserDTO){
+        // check user exists
+        const user = await this.userDatastore.getUserById(dto.userId);
+        if(!user?.Item){
+            throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        if(dto.userId !== user.Item.userId){
+            throw new ResourceError("Authenticated user does not match user to update.", ResourceErrorReason.FORBIDDEN);
+        }
+
+        if(dto.bio && dto.bio.length > 30){
+            throw new ResourceError("Bio Must Be 30 Characters Or Less.", ResourceErrorReason.BAD_REQUEST);
+        }
+
+        return await this.userDatastore.updateUser(dto);
+    }
+
     public async getUsers(query: SearchUsersDTO) {
         if(!query.text || query.text.trim().length < 3){
             throw new ResourceError("Search Text Must Be At Least 3 Characters Long.", ResourceErrorReason.BAD_REQUEST);
@@ -94,6 +113,10 @@ export class UserComponent {
     }
 
     public async addFollower(followBody: FollowDTO){
+        if(followBody.tokenId !== followBody.userId){
+            throw new ResourceError("Authenticated user does not match user in path.", ResourceErrorReason.INVALID_ACCESS);
+        }
+
         if(followBody.userId === followBody.following){
             throw new ResourceError("User cannot follow themself.", ResourceErrorReason.BAD_REQUEST);
         }
@@ -137,6 +160,10 @@ export class UserComponent {
     }
 
     public async removeFollower(followBody: FollowDTO){
+        if(followBody.tokenId !== followBody.following){
+            throw new ResourceError("Authenticated user does not match user in path.", ResourceErrorReason.INVALID_ACCESS);
+        }
+
         if(followBody.userId === followBody.following){
             throw new ResourceError("User cannot unfollow themself.", ResourceErrorReason.BAD_REQUEST);
         }

@@ -3,6 +3,7 @@ import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamod
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
 import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { UpdateUserDTO } from "./DTOs/update-user.dto";
 
 export class UserDatastore {
     
@@ -96,6 +97,10 @@ export class UserDatastore {
         }));
 
         return user;
+    }
+
+    public async updateUser(body: UpdateUserDTO){
+        
     }
 
     public async getUsers(text: string){
