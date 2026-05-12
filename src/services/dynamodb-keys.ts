@@ -16,6 +16,7 @@ export const PK = {
   username: (username: string) => `USERNAME#${username}`,
   email: (email: string) => `EMAIL#${email}`,
   post: (authorUserId: string) => `USER#${authorUserId}`, // PK for Post entity, uses UserId for Author
+  explorePost:() => `EXPLORE#POSTS`, // Single PK for all explore posts since we don't need to query them by author or anything, just get all of them
 
   plan: (id: string) => `PLAN#${id}`,
 };
@@ -29,6 +30,7 @@ export const SK = {
   followedBy: (userId: string) => `FOLLOWED_BY#${userId}`,
   like: (postId: string, viewerUserId: string) => `LIKE#${postId}#USER${viewerUserId}`,
   likedPost: (postId: string) => `LIKED_POST#${postId}`,
+  explorePost: (createdAt: string, postId: string) => `POST#${createdAt}#${postId}`,
 
   plan: (createdAt: string, planId: string) => `PLAN#${createdAt}#${planId}`,
   week: (weekId: string) => `WEEK#${weekId}`,
@@ -47,6 +49,7 @@ export const ENTITY = {
   like: "Like",
   likedPost: "LikedPost",
   userPlan: "UserPlan",
+  explorePost: "ExplorePost",
 
   // For Plan Entity, we have multiple "sub-entities" for different nodes
   week: "PlanWeek",
