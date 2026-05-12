@@ -7,6 +7,8 @@ import { FollowDTO } from "./DTOs/follow.dto";
 import { GetUserFollowersDTO } from "./DTOs/get-users-followers.dto";
 import { GetUserFollowingDTO } from "./DTOs/get-user-following.dto";
 import { authMiddleware, AuthRequest } from "../../middleware/authMiddleware";
+import { SearchUsersDTO } from "./DTOs/search-users.dto";
+import { UpdateUserDTO } from "./DTOs/update-user.dto";
 
 export class UserRouteHandler {
     public static build(): Router {
@@ -16,12 +18,13 @@ export class UserRouteHandler {
         router.get("/users/me", authMiddleware, this.getMe);
 
         router.post("/users", authMiddleware, this.register); // onboarding route, rename functions
-        router.get("/users", this.getUsers); // TODO
+        router.get("/users", this.getUsers); // SEARCH USERS
         router.get("/users/:user", this.getUser); // Public GET User route
-        router.patch("/users/:username", this.updateUser);
-        router.post("/:userId/followers/:followerId", this.addFollower);
+        router.patch("/users/:username", authMiddleware, this.updateUser);
+        router.post("/:userId/followers/:followerId", authMiddleware, this.addFollower);
         router.get("/users/:userId/followers", this.getUsersFollowers);
         router.get("/users/:userId/following", this.getUsersFollowing);
+        router.delete("/:userId/followers/:followerId", authMiddleware, this.removeFollower);
 
         return router;
     }
@@ -53,9 +56,12 @@ export class UserRouteHandler {
     /**
      * Search Users Route
      */
+    @Dto(SearchUsersDTO)
     public static async getUsers(req: Request, res: Response, next: NextFunction) {
         try {
-            res.status(200).json(await UserComponent.build().getUsers());
+            res.status(200).json(await UserComponent.build().getUsers(
+                req.body.dto as SearchUsersDTO
+            ));
         } catch (e) {
             next(e);
         } 
@@ -78,13 +84,23 @@ export class UserRouteHandler {
     /**
      * Update a User
      */
-    public static updateUser(req: Request, res: Response) {
-        return res.json({ message: "Update Users"});
+    @Dto(UpdateUserDTO)
+    public static updateUser(req: AuthRequest, res: Response, next: NextFunction){
+        try {
+            req.body.dto.userId = req.user!.sub;
+            res.status(200).json(UserComponent.build().updateUser(
+                req.body.dto as UpdateUserDTO
+            ));
+        }
+        catch(e){
+            next(e);
+        }
     }
 
     @Dto(FollowDTO)
-    public static async addFollower(req: Request, res: Response, next: NextFunction){
+    public static async addFollower(req: AuthRequest, res: Response, next: NextFunction){
         try {
+            req.body.dto.tokenId = req.user!.sub;
             res.status(200).json(await UserComponent.build().addFollower(
                 req.body.dto as FollowDTO
             ));
@@ -109,6 +125,18 @@ export class UserRouteHandler {
         try {
             res.status(200).json(await UserComponent.build().getAccountsUserFollows(
                 req.body.dto.userId
+            ));
+        } catch(e) {
+            next(e);
+        }
+    }
+
+    @Dto(FollowDTO)
+    public static async removeFollower(req: AuthRequest, res: Response, next: NextFunction){
+        try {
+            req.body.dto.tokenId = req.user!.sub;
+            res.status(200).json(await UserComponent.build().removeFollower(
+                req.body.dto as FollowDTO
             ));
         } catch(e) {
             next(e);

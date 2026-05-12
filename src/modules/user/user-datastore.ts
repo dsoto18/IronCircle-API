@@ -2,7 +2,8 @@ import { DynamoClient } from "../../services/dynamodb-client";
 import { ENTITY, generateUuid, PK, SK, TABLE_NAME } from "../../services/dynamodb-keys";
 import { CreateUserDTO } from "./DTOs/create-user.dto";
 import { ResourceError, ResourceErrorReason } from "../../shared/error";
-import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, QueryCommand, TransactWriteCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { UpdateUserDTO } from "./DTOs/update-user.dto";
 
 export class UserDatastore {
     
@@ -37,6 +38,8 @@ export class UserDatastore {
             Item: {
                 PK: partitionKey,
                 SK: sortKey,
+                UsernameIndexPK: "USERNAME", // static value to allow for GSI on username
+                UsernameIndexSK: insert.username, // username as sort key for GSI to allow querying by username
                 userId: insert.userId,
                 entity: ENTITY.user,
                 firstName: insert.firstName,
@@ -47,7 +50,7 @@ export class UserDatastore {
                 updatedAt: new Date().toISOString(),
                 isVerified: false,
                 bio: "",
-                profilePictureUrl: ""
+                profilePictureUrl: "",
             },
             ConditionExpression: "attribute_not_exists(PK)"
         };
@@ -96,8 +99,78 @@ export class UserDatastore {
         return user;
     }
 
-    public async getUsers(){
+    public async updateUser(dto: UpdateUserDTO) {
+        const updateFields: string[] = [];
+        const expressionValues: Record<string, any> = {};
+        const expressionNames: Record<string, string> = {};
 
+        if (dto.firstName !== undefined) {
+            updateFields.push("#firstName = :firstName");
+            expressionNames["#firstName"] = "firstName";
+            expressionValues[":firstName"] = dto.firstName;
+        }
+
+        if (dto.lastName !== undefined) {
+            updateFields.push("#lastName = :lastName");
+            expressionNames["#lastName"] = "lastName";
+            expressionValues[":lastName"] = dto.lastName;
+        }
+
+        if (dto.bio !== undefined) {
+            updateFields.push("#bio = :bio");
+            expressionNames["#bio"] = "bio";
+            expressionValues[":bio"] = dto.bio;
+        }
+
+        // always update timestamp
+        updateFields.push("#updatedAt = :updatedAt");
+        expressionNames["#updatedAt"] = "updatedAt";
+        expressionValues[":updatedAt"] = new Date().toISOString();
+
+        if (updateFields.length === 0) {
+            throw new ResourceError(
+                "No valid fields provided for update.",
+                ResourceErrorReason.BAD_REQUEST
+            );
+        }
+
+        const command = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: {
+                PK: PK.user(dto.userId),
+                SK: SK.profile
+            },
+            UpdateExpression: `SET ${updateFields.join(", ")}`,
+            ExpressionAttributeNames: expressionNames,
+            ExpressionAttributeValues: expressionValues,
+            ConditionExpression: "attribute_exists(PK)",
+            ReturnValues: "ALL_NEW"
+        });
+
+        try {
+            const result = await this.dbClient?.send(command);
+            return result;
+        } catch(e) {
+            console.log("Error updating user: ", e);
+            throw new ResourceError("Update User Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getUsers(text: string){
+        const query = new QueryCommand({
+            TableName: TABLE_NAME,
+            IndexName: "UsernameIndex",
+            KeyConditionExpression: "UsernameIndexPK = :pk AND begins_with(UsernameIndexSK, :q)",
+            ExpressionAttributeValues: {
+                ":pk": "USERNAME",
+                ":q": text.toLowerCase()
+            },
+            ProjectionExpression: "userId, username, firstName, lastName, profilePictureUrl",
+            Limit: 5
+        });
+
+        const result = await this.dbClient?.send(query);
+        return result;
     }
 
     public async getUserEmailLock(email: string){
@@ -209,5 +282,38 @@ export class UserDatastore {
 
         const result = await this.dbClient?.send(command);
         return result;
+    }
+
+    public async removeFollow(userId: string, followerId: string){
+        const deleteFollow = {
+            Delete: {
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(followerId),
+                    SK: SK.follows(userId),
+                },
+                ConditionExpression: "attribute_exists(SK)"
+            }
+        };
+
+        const deleteFollowedBy = {
+            Delete: {
+                TableName: TABLE_NAME,
+                Key: {
+                    PK: PK.user(userId),
+                    SK: SK.followedBy(followerId)
+                },
+                ConditionExpression: "attribute_exists(SK)"
+            }
+        };
+
+        const transaction = [ deleteFollow, deleteFollowedBy ];
+
+        try {
+            const result = await this.dbClient?.send(new TransactWriteCommand({TransactItems: transaction}))
+            return result;
+        } catch (e) {
+            throw new ResourceError("Remove Follow Transaction Operation Failed.", ResourceErrorReason.INTERNAL_SERVER_ERROR);
+        }
     }
 }
