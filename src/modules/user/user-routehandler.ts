@@ -95,7 +95,6 @@ export class UserRouteHandler {
         catch(e){
             next(e);
         }
-        return res.json({ message: "Update Users"});
     }
 
     @Dto(FollowDTO)

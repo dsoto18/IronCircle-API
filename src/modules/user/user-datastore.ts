@@ -317,29 +317,3 @@ export class UserDatastore {
         }
     }
 }
-/**
- * COMPONENT FUNCTION
-2026-05-11 20:57:48 Error: Cannot set headers after they are sent to the client
-2026-05-11 20:57:48     at ServerResponse.setHeader (node:_http_outgoing:655:11)
-2026-05-11 20:57:48     at ServerResponse.header (/app/node_modules/express/lib/response.js:686:10)
-2026-05-11 20:57:48     at ServerResponse.send (/app/node_modules/express/lib/response.js:163:12)
-2026-05-11 20:57:48     at ServerResponse.json (/app/node_modules/express/lib/response.js:252:15)
-2026-05-11 20:57:48     at updateUser (/app/src/modules/user/user-routehandler.ts:98:20)
-2026-05-11 20:57:48     at descriptor.value (/app/src/shared/dto.ts:31:33)
-2026-05-11 20:57:48     at processTicksAndRejections (node:internal/process/task_queues:95:5) {
-2026-05-11 20:57:48   code: 'ERR_HTTP_HEADERS_SENT'
-2026-05-11 20:57:48 }
-2026-05-11 20:57:48 {"message":"Cannot set headers after they are sent to the client","stack":"Error: Cannot set headers after they are sent to the client\n    at ServerResponse.setHeader (node:_http_outgoing:655:11)\n    at ServerResponse.header (/app/node_modules/express/lib/response.js:686:10)\n    at ServerResponse.send (/app/node_modules/express/lib/response.js:163:12)\n    at ServerResponse.json (/app/node_modules/express/lib/response.js:252:15)\n    at updateUser (/app/src/modules/user/user-routehandler.ts:98:20)\n    at descriptor.value (/app/src/shared/dto.ts:31:33)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)","name":"Error","code":"ERR_HTTP_HEADERS_SENT"}
-2026-05-11 20:57:48 Error: Cannot set headers after they are sent to the client
-2026-05-11 20:57:48     at ServerResponse.setHeader (node:_http_outgoing:655:11)
-2026-05-11 20:57:48     at ServerResponse.header (/app/node_modules/express/lib/response.js:686:10)
-2026-05-11 20:57:48     at ServerResponse.send (/app/node_modules/express/lib/response.js:163:12)
-2026-05-11 20:57:48     at ServerResponse.json (/app/node_modules/express/lib/response.js:252:15)
-2026-05-11 20:57:48     at ErrorParser (/app/src/shared/error-parse.ts:86:34)
-2026-05-11 20:57:48     at Layer.handleError (/app/node_modules/router/lib/layer.js:116:17)
-2026-05-11 20:57:48     at trimPrefix (/app/node_modules/router/index.js:340:13)
-2026-05-11 20:57:48     at /app/node_modules/router/index.js:297:9
-2026-05-11 20:57:48     at processParams (/app/node_modules/router/index.js:582:12)
-2026-05-11 20:57:48     at next (/app/node_modules/router/index.js:291:5)
-2026-05-11 20:57:48 CHECKS PASSED, UPDATING USER
- */
