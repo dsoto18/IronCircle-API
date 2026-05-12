@@ -13,4 +13,5 @@ export type ExplorePost = {
     metadataLabel?: string;
     tags?: string[];
     createdAt: string;
+    updatedAt: string;
 }

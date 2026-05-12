@@ -26,6 +26,9 @@ export class ExplorePostsComponent {
         if(!user?.Item){
             throw new ResourceError("User Not Found.", ResourceErrorReason.NOT_FOUND);
         }
+        if(user?.Item.isVerified !== true){
+            throw new ResourceError("Requester must have verified account.", ResourceErrorReason.FORBIDDEN);
+        }
 
         const createdAt = new Date().toISOString();
         const postId = generateUuid();
@@ -43,8 +46,18 @@ export class ExplorePostsComponent {
             summary: postBody.summary,
             tags: postBody.tags,
             createdAt: createdAt,
+            updatedAt: createdAt
         }
 
         return await this.exploreDatastore.createPost(post);
+    }
+
+    public async getFeaturedPosts(requester: string){
+        const user = await this.userDatastore.getUserById(requester);
+        if(!user?.Item){
+            throw new ResourceError("Requesting user is not found.", ResourceErrorReason.NOT_FOUND);
+        }
+
+        return await this.exploreDatastore.getPosts();
     }
 }
