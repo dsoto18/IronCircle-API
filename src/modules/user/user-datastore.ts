@@ -51,6 +51,7 @@ export class UserDatastore {
                 isVerified: false,
                 bio: "",
                 profilePictureUrl: "",
+                pictureKey: "",
             },
             ConditionExpression: "attribute_not_exists(PK)"
         };
@@ -120,6 +121,12 @@ export class UserDatastore {
             updateFields.push("#bio = :bio");
             expressionNames["#bio"] = "bio";
             expressionValues[":bio"] = dto.bio;
+        }
+
+        if (dto.profilePictureUrl !== undefined) {
+            updateFields.push("#profilePictureUrl = :profilePictureUrl");
+            expressionNames["#profilePictureUrl"] = "profilePictureUrl";
+            expressionValues[":profilePictureUrl"] = dto.profilePictureUrl;
         }
 
         // always update timestamp

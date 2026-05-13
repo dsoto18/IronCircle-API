@@ -24,9 +24,7 @@
   "homepage": "https://github.com/dsoto18/IronCircle-API#readme",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.998.0",
-    "@aws-sdk/client-s3": "^3.1045.0",
     "@aws-sdk/lib-dynamodb": "^3.1007.0",
-    "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "class-validator": "^0.15.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
@@ -34,6 +32,8 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/s3-request-presigner": "^3.1045.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.2.3",
     "@types/uuid": "^8.3.4",

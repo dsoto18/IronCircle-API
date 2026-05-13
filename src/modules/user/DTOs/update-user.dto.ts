@@ -19,6 +19,14 @@ export class UpdateUserDTO extends AbstractDto {
     @IsOptional()
     bio?: string;
 
+    @IsString()
+    @IsOptional()
+    profilePictureUrl: string
+
+    @IsString()
+    @IsOptional()
+    pictureKey: string
+
     userId: string; // temporary, should fix this but it gets set in the routehandler from middleware
 
     constructor(req: Request) {
@@ -29,5 +37,7 @@ export class UpdateUserDTO extends AbstractDto {
         this.bio = req.body.bio;
         this.userId = "";
 
+        this.profilePictureUrl = req.body.profilePictureUrl;
+        this.pictureKey = req.body.pictureKey;
     }
 }
