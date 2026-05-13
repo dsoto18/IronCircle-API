@@ -322,7 +322,7 @@ export class PlansComponent {
         const currentDate = new Date().toISOString();
         dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
         dto.dayNumber = Number(dto.dayNumber);
-        const blockId = 1; // For now, just defaulting to block 1, but will need to implement logic to determine this value based on existing blocks for the day
+        const blockId = await this.getNextBlockNumber(dto.planId, dto.weekNumber, dto.dayNumber);
         const blockNodeBody: PlanBlock = {
             PK: PK.plan(dto.planId),
             SK: SK.block(dto.weekNumber.toString(), dto.dayNumber.toString(), blockId.toString()),
@@ -371,9 +371,11 @@ export class PlansComponent {
         dto.weekNumber = Number(dto.weekNumber); // Should be coming in as a string from the route params, need to convert to a number
         dto.dayNumber = Number(dto.dayNumber);
         dto.blockNumber = Number(dto.blockNumber);
+        const itemNumber = await this.getNextItemOrder(dto.planId, dto.weekNumber, dto.dayNumber, dto.blockNumber)
         const itemNodeBody: PlanItem = {
             PK: PK.plan(dto.planId),
-            SK: SK.item(dto.weekNumber.toString(), dto.dayNumber.toString(), dto.blockNumber.toString(), dto.order.toString()),
+            SK: SK.item(dto.weekNumber.toString(), dto.dayNumber.toString(), dto.blockNumber.toString(), itemNumber.toString()),
+            order: itemNumber,
             entity: ENTITY.item,
             createdAt: currentDate,
             updatedAt: currentDate,
@@ -424,12 +426,10 @@ export class PlansComponent {
 
     // Get Next Block Number
     public async getNextBlockNumber(planId: string, weekNumber: number, dayNumber: number): Promise<number> {
-        const weekKey = SK.week(weekNumber.toString());
         const dayKey = SK.day(weekNumber.toString(), dayNumber.toString());
-
         const blocks = await this.plansDatastore.getSiblingNodesByPrefix<PlanBlock>({
             planId,
-            skPrefix: `${weekKey}#${dayKey}#BLOCK#`,
+            skPrefix: `${dayKey}BLOCK#`,
             entity: ENTITY.block,
         });
 
@@ -441,13 +441,13 @@ export class PlansComponent {
 
     // Get Next Item Order Number
     public async getNextItemOrder(planId: string, weekNumber: number, dayNumber: number, blockNumber: number): Promise<number> {
-        const weekKey = SK.week(weekNumber.toString());
-        const dayKey = SK.day(weekNumber.toString(), dayNumber.toString());
+        // const weekKey = SK.week(weekNumber.toString());
+        // const dayKey = SK.day(weekNumber.toString(), dayNumber.toString());
         const blockKey = SK.block(weekNumber.toString(), dayNumber.toString(), blockNumber.toString());
 
         const items = await this.plansDatastore.getSiblingNodesByPrefix<PlanItem>({
             planId,
-            skPrefix: `${weekKey}#${dayKey}#${blockKey}#ITEM#`,
+            skPrefix: `${blockKey}ITEM#`,
             entity: ENTITY.item,
         });
 
