@@ -49,6 +49,7 @@ export class PostsDatastore {
             distance: postBody.distance,
             duration: postBody.duration,
             imageUrl: postBody.imageUrl,
+            pictureKey: postBody.pictureKey,
             caption: postBody.caption,
             likeCount: 0
         };

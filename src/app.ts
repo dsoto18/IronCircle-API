@@ -4,6 +4,7 @@ import { PostsRoutehandler } from './modules/post/posts-routehandler';
 import { ErrorParser } from './shared/error-parse';
 import { PlansRoutehandler } from './modules/plan/plans-routehandler';
 import { ExplorePostsRoutehandler } from './modules/explore-posts/explore-posts-routehandler';
+import { AppMediaRoutehandler } from './modules/app-media/app-media-routehandler';
 
 const app = express();
 const port = 3000;
@@ -15,6 +16,7 @@ app.use(UserRouteHandler.build());
 app.use(PostsRoutehandler.build());
 app.use(PlansRoutehandler.build());
 app.use(ExplorePostsRoutehandler.build());
+app.use(AppMediaRoutehandler.build());
 
 app.use(ErrorParser);
 
@@ -28,5 +30,6 @@ app.get("/health", (_, res) => {
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}!`);
+  console.log("Secret Access KEY", process.env.AWS_ACCESS_KEY_ID)
 });
 

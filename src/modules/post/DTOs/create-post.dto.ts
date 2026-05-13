@@ -38,6 +38,9 @@ export class CreatePostDTO extends AbstractDto {
     imageUrl: string;
 
     @IsOptional()
+    pictureKey: string;
+
+    @IsOptional()
     @MaxLength(256)
     caption: string;
 
@@ -55,6 +58,7 @@ export class CreatePostDTO extends AbstractDto {
         this.calories = req.body.calories;
         this.duration = req.body.duration;
         this.imageUrl = req.body.imageUrl;
+        this.pictureKey = req.body.pictureKey;
         this.caption = req.body.caption;
         this.visibility = req.body.visibility;
     }
