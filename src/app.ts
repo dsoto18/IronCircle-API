@@ -30,6 +30,5 @@ app.get("/health", (_, res) => {
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}!`);
-  console.log("Secret Access KEY", process.env.AWS_ACCESS_KEY_ID)
 });
 
