@@ -7,7 +7,7 @@ export class AddBlockNodeDTO extends AbstractDto {
     @IsString()
     planId: string;
 
-    @IsString()
+   //  @IsString()
     userId: string;
 
     @IsString()
@@ -30,7 +30,7 @@ export class AddBlockNodeDTO extends AbstractDto {
         super();
 
         this.planId = req.params.planId as string;
-        this.userId = req.body.userId as string;
+        this.userId = "";
         this.weekNumber = req.params.weekNumber as string;
         this.dayNumber = req.params.dayNumber as string;
         this.title = req.body.title;

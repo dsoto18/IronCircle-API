@@ -18,20 +18,20 @@ export type PlanItem = {
   updatedAt: string;
 
   // workout-specific
-  sets?: number;
+  sets?: string;
   reps?: string; // "8-10"
-  durationMin?: number;
+  durationMin?: string;
   distance?: string;
-  restSeconds?: number;
+  restSeconds?: string;
   intensity?: string; // "RPE 8", "Zone 2", etc.
   tempo?: string;
   videoUrl?: string;
 
   // meal-specific
-  calories?: number;
-  proteinGrams?: number;
-  carbsGrams?: number;
-  fatGrams?: number;
+  calories?: string;
+  proteinGrams?: string;
+  carbsGrams?: string;
+  fatGrams?: string;
   //   ingredients?: Array<{
   //     name: string;
   //     quantity?: string;

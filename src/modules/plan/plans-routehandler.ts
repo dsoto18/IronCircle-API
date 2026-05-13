@@ -33,8 +33,8 @@ export class PlansRoutehandler {
         // POST Nodes
         router.post("/plans/:planId/weeks", authMiddleware, this.addWeekToPlan);
         router.post("/plans/:planId/weeks/:weekNumber/days", authMiddleware, this.addDayToWeek);
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", this.addBlockToDay); // TODO
-        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", this.addItemToBlock); // TODO
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks", authMiddleware, this.addBlockToDay);
+        router.post("/plans/:planId/weeks/:weekNumber/days/:dayNumber/blocks/:blockNumber/items", authMiddleware, this.addItemToBlock);
 
         // PATCH Nodes
         router.patch("/plans/:planId/weeks/:weekNumber", this.updateWeek); // Implementing for V2
@@ -135,8 +135,9 @@ export class PlansRoutehandler {
     }
 
     @Dto(AddBlockNodeDTO)
-    public static async addBlockToDay(req: Request, res: Response, next: NextFunction) {
+    public static async addBlockToDay(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            req.body.dto.userId = req.user?.sub;
             res.status(200).json(await PlansComponent.build().addBlockToDay(
                 req.body.dto as AddBlockNodeDTO
             ));
@@ -146,8 +147,9 @@ export class PlansRoutehandler {
     }
 
     @Dto(AddItemNodeDTO)
-    public static async addItemToBlock(req: Request, res: Response, next: NextFunction) {
+    public static async addItemToBlock(req: AuthRequest, res: Response, next: NextFunction) {
         try {
+            req.body.dto.userId = req.user?.sub;
             res.status(200).json(await PlansComponent.build().addItemToBlock(
                 req.body.dto as AddItemNodeDTO
             ));

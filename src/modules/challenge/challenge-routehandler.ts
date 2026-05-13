@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
 
+
+// Potentially deprecating or reworking Challenges, so not implementing fully at this time. Will add to backlog for V2 if we decide to keep this feature.
 export class ChallengeRoutehandler {
     public static build(): Router {
         const router = Router();

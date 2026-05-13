@@ -40,6 +40,8 @@ function buildUserItems(tableName: string, user: SeedUser) {
         Item: {
           PK: PK.user(user.userId),
           SK: SK.profile,
+          UsernameIndexPK: "USERNAME", // static value to allow for GSI on username
+          UsernameIndexSK: user.username, // username as sort key for GSI to allow querying by username
           entity: ENTITY.user,
           userId: user.userId,
           firstName: user.firstName,

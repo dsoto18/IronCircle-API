@@ -7,7 +7,7 @@ export class AddItemNodeDTO extends AbstractDto {
     @IsString()
     planId: string;
 
-    @IsString()
+    // @IsString()
     userId: string;
 
     @IsString()
@@ -30,30 +30,31 @@ export class AddItemNodeDTO extends AbstractDto {
     @IsOptional()
     description: string;
 
-    @IsNumber()
-    order: number;
+    // @IsNumber()
+    // order: number; // disabling as its now determined in compnent logic
 
     // More Specific Content Below
     // Workout Specific
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    sets: number;
+    sets: string;
 
     @IsString()
     @IsOptional()
     reps: string; // "8-10"
 
-    @IsNumber()
+    // @IsNumber()
+    @IsString()
     @IsOptional()
-    durationMin: number;
+    durationMin: string;
 
     @IsString()
     @IsOptional()
     distance: string;
 
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    restSeconds: number;
+    restSeconds: string;
 
     @IsString()
     @IsOptional()
@@ -70,21 +71,21 @@ export class AddItemNodeDTO extends AbstractDto {
     // meal-specific
 
 
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    calories?: number;
+    calories?: string;
 
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    proteinGrams: number;
+    proteinGrams: string;
 
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    carbsGrams: number;
+    carbsGrams: string;
 
-    @IsNumber()
+    @IsString()
     @IsOptional()
-    fatGrams: number;
+    fatGrams: string;
 
     @IsArray()
     @IsString({ each: true })
@@ -103,7 +104,7 @@ export class AddItemNodeDTO extends AbstractDto {
         super();
         
         this.planId = req.params.planId as string;
-        this.userId = req.body.userId as string;
+        this.userId = "";
         this.weekNumber = req.params.weekNumber as string;
         this.dayNumber = req.params.dayNumber as string;
         this.blockNumber = req.params.blockNumber as string;
@@ -111,7 +112,7 @@ export class AddItemNodeDTO extends AbstractDto {
         this.itemType = req.body.itemType;
         this.title = req.body.title;
         this.description = req.body.description;
-        this.order = req.body.order;
+        // this.order = req.body.order;
 
         this.sets = req.body.sets;
         this.reps = req.body.reps;
