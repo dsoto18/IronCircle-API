@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { authMiddleware } from "../../middleware/authMiddleware";
 
 
 export class AppMediaRoutehandler {
@@ -6,7 +7,7 @@ export class AppMediaRoutehandler {
     public static build(): Router {
         const router = Router();
 
-        router.post("/media/upload-url", this.generateUploadUrl);
+        router.post("/media/upload-url", authMiddleware, this.generateUploadUrl);
 
         return router;
     }
